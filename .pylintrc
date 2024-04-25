@@ -1,0 +1,11 @@
+[BASIC]
+#good-names=x,y,m,gd,df,p,s,i,r,d,k,cd,d1,d2,ip,vn,x0,x1,y0,y1,dd,xs,i,j,tz
+ignore-paths=
+    venv/,
+
+[MESSAGE-CONTROL]
+disable=
+    too-many-instance-attributes,
+    too-many-arguments,
+    too-few-public-methods,
+    unspecified-encoding,

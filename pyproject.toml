@@ -1,0 +1,35 @@
+[project]
+name = "pythainer"
+version = "0.0.1"
+authors = [
+  { name="Antonio Paolillo", email="antonio@paolillo.be" },
+]
+description = "A pythonic toolkit for composing, managing, and deploying Docker images and containers."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/apaolillo/pythainer"
+Issues = "https://github.com/apaolillo/pythainer/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+exclude = '''venv'''
+
+[tool.isort]
+profile = "black"
+skip = [
+    "venv"
+]
+skip_glob = ["**/venv/**/*"]
