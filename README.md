@@ -36,12 +36,14 @@ cd pythainer
 Here is a simple example of how to use Pythainer to build a Docker container:
 
 ```python3
-from pythainer.builders import UbuntuDockerBuilder
+from pythainer.examples.builders import get_user_builder
 from pythainer.runners import ConcreteDockerRunner
 
 image_name = "pythainertest"
-builder = UbuntuDockerBuilder(tag=image_name, ubuntu_base_tag="ubuntu:22.04")
+builder = get_user_builder(image_name=image_name, base_ubuntu_image="ubuntu:22.04")
+builder.root()
 builder.add_packages(packages=["vim", "git", "tmux"])
+builder.user("${USER_NAME}")
 runner = ConcreteDockerRunner(image=image_name)
 
 builder.build()
