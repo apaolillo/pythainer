@@ -103,10 +103,10 @@ def get_user_builder(
 
     docker_builder.desc("Create a non-root user")
     docker_builder.create_user(username=user_name)
-    docker_builder.user(name=user_name)
     docker_builder.space()
 
     docker_builder.desc("Configure user environment")
+    docker_builder.user()
     docker_builder.workdir(path="/home/${USER_NAME}")
     docker_builder.run(command="touch ~/.sudo_as_admin_successful")
     docker_builder.run(command="mkdir workspace")

@@ -6,7 +6,7 @@ This module provides classes for building Docker images programmatically with cu
 handling commands like package installation, environment variable setting, and user management,
 tailored specifically for Docker environments.
 """
-
+import os
 import tempfile
 from pathlib import Path
 from typing import Dict, List
@@ -16,6 +16,7 @@ from pythainer.builders.cmds import (
     DockerBuildCommand,
     StrDockerBuildCommand,
 )
+from pythainer.runners import ConcreteDockerRunner
 from pythainer.sysutils import (
     PathType,
     get_gid,
@@ -218,6 +219,7 @@ class DockerBuilder(PartialDockerBuilder):
         self,
         tag: str,
         package_manager: str,
+        use_buildkit: bool = True,
     ) -> None:
         """
         Initializes the DockerBuilder with a tag for the image and the package manager used in the
@@ -227,10 +229,12 @@ class DockerBuilder(PartialDockerBuilder):
             tag (str): The tag to be used for the built Docker image.
             package_manager (str): The package manager (e.g., 'apt', 'yum') to be used within the
                                    Docker environment.
+            use_buildkit (bool): Whether to use the buildkit for the Docker image build.
         """
         super().__init__()
         self._tag = tag
         self._package_manager = package_manager
+        self._use_buildkit = use_buildkit
 
     def generate_dockerfile(self, dockerfile_paths: List[PathType]) -> None:
         """
@@ -255,24 +259,22 @@ class DockerBuilder(PartialDockerBuilder):
             with open(dockerfile_path, "w") as dockerfile:
                 dockerfile.write(dockerfile_content)
 
-    @staticmethod
-    def get_build_environment() -> Dict[str, str]:
+    def get_build_environment(self) -> Dict[str, str]:
         """
         Provides the Docker build environment variables necessary for the build process.
 
         Returns:
             Dict[str, str]: A dictionary of environment variables for Docker build itself.
         """
-        return {
-            "DOCKER_BUILDKIT": "0",
-        }
+        env = {"BUILDKIT_PROGRESS": "plain"} if self._use_buildkit else {"DOCKER_BUILDKIT": "0"}
+        return env
 
     def get_build_commands(
         self,
         dockerfile_path: PathType,
         docker_build_dir: PathType,
-        uid: str,
-        gid: str,
+        uid: str | None = None,
+        gid: str | None = None,
     ) -> List[str]:
         """
         Constructs the docker build command using the provided Dockerfile and build directory.
@@ -280,22 +282,31 @@ class DockerBuilder(PartialDockerBuilder):
         Parameters:
             dockerfile_path (PathType): The path to the Dockerfile.
             docker_build_dir (PathType): The directory where the Docker build context resides.
-            uid (str): The user ID that should be passed to the Docker build context.
-            gid (str): The group ID that should be passed to the Docker build context.
+            uid (str): The user ID that should be passed to the Docker build context, if any.
+            gid (str): The group ID that should be passed to the Docker build context, if any.
 
         Returns:
             List[str]: The complete Docker build command as a list of strings.
         """
-        command = [
-            "docker",
-            "build",
-            "--file",
-            f"{dockerfile_path}",
-            f"--build-arg=UID={uid}",
-            f"--build-arg=GID={gid}",
-            f"--tag={self._tag}",
-            f"{docker_build_dir}",
-        ]
+        build_args = []
+        if uid is not None:
+            build_args.append(f"--build-arg=UID={uid}")
+        if gid is not None:
+            build_args.append(f"--build-arg=GID={gid}")
+
+        command = (
+            [
+                "docker",
+                "build",
+                "--file",
+                f"{dockerfile_path}",
+            ]
+            + build_args
+            + [
+                f"--tag={self._tag}",
+                f"{docker_build_dir}",
+            ]
+        )
 
         return command
 
@@ -377,6 +388,19 @@ class DockerBuilder(PartialDockerBuilder):
                 environment=environment,
                 output_is_log=True,
             )
+
+    def get_runner(self) -> ConcreteDockerRunner:
+        """
+        Returns a concrete runner using the image built in the current builder.
+        This runner might be immediately used.
+
+        Returns:
+            ConcreteDockerRunner: a runner using the image built in the current builder.
+        """
+        return ConcreteDockerRunner(
+            image=self._tag,
+            name=self._tag,
+        )
 
     def __or__(
         self,
@@ -488,3 +512,65 @@ class UbuntuDockerBuilder(DockerBuilder):
         self.run(command="adduser ${USER_NAME} sudo")
         self.run(command="echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers")
         self.run(command='echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/10-docker')
+
+
+class DockerfileDockerBuilder(DockerBuilder):
+    """
+    A DockerBuilder subclass that is built not using the pythainer command but by using a given
+    dockerfile. The builder will then use the given dockerfile path and the given directory to build
+    the corresponding docker image in that directory.
+    """
+
+    def __init__(
+        self,
+        tag: str,
+        dockerfile_path: PathType,
+        build_dir: PathType,
+        use_uid_gid: bool,
+        use_buildkit: bool = True,
+    ) -> None:
+        super().__init__(
+            tag=tag,
+            package_manager="",
+            use_buildkit=use_buildkit,
+        )
+        self._dockerfile_path = dockerfile_path
+        self._build_dir = build_dir
+        self._use_uid_gid = use_uid_gid
+
+    def generate_dockerfile(self, dockerfile_paths: List[PathType]) -> None:
+        raise NotImplementedError()
+
+    def generate_build_script(
+        self,
+        output_path: PathType = "/tmp/benchkit/docker/latest/docker-build.sh",
+    ) -> None:
+        raise NotImplementedError()
+
+    def build(self, dockerfile_savepath: PathType = "") -> None:
+        if dockerfile_savepath:
+            raise NotImplementedError()
+
+        command = self.get_build_commands(
+            dockerfile_path=self._dockerfile_path,
+            docker_build_dir=self._build_dir,
+            uid=get_uid() if self._use_uid_gid else None,
+            gid=get_gid() if self._use_uid_gid else None,
+        )
+
+        environment = self.get_build_environment() | {
+            "PATH": os.environ["PATH"]
+        }  # to avoid git warning in docker
+
+        shell_out(
+            command=command,
+            current_dir=self._build_dir,
+            environment=environment,
+            output_is_log=True,
+        )
+
+    def __or__(
+        self,
+        other: "PartialDockerBuilder",
+    ) -> "DockerBuilder":
+        raise NotImplementedError()

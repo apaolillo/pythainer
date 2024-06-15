@@ -84,7 +84,7 @@ def rtde_lib_install_from_src(
     builder.user("${USER_NAME}")
     builder.space()
 
-    # The following installs the ppa of RTDE provided by the developpers,
+    # The following installs the ppa of RTDE provided by the developers,
     # but commented-out as we're compiling from sources instead (see below).
     # docker_builder.run(command="add-apt-repository ppa:sdurobotics/ur-rtde")
     # docker_builder.add_packages(packages=["librtde", "librtde-dev"])

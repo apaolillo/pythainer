@@ -10,7 +10,7 @@ venv_dir=$(readlink -f "${pythainer_root_dir}/venv")
 
   if [ ! -d "${venv_dir}" ]
   then
-    echo "-- venv in root dir of benchkit not present. Creating one. --"
+    echo "-- venv in root dir of pythainer not present. Creating one. --"
     ./scripts/install_venv.sh
     echo "-- venv created. --"
   fi
@@ -24,13 +24,13 @@ venv_dir=$(readlink -f "${pythainer_root_dir}/venv")
   ./scripts/list_missing_copyright.sh
 
   echo "-- running pylint. --"
-  ${pylint} pythainer/ || true
+  ${pylint} src/ || true
 
   echo "-- running flake8. --"
-  ${flake8} pythainer/ || true
+  ${flake8} src/ || true
 
   echo "-- running isort. --"
-  ${isort} --profile=black pythainer/
+  ${isort} --profile=black src/
 
   echo "-- running black. --"
   ${black} -l 100 .

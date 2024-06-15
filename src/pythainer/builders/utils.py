@@ -88,6 +88,7 @@ def project_git_clone(
     git_url: str,
     commit: str,
     submodule_init_recursive: bool = False,
+    single_run_command: bool = False,
 ) -> str:
     """
     Clones a Git repository at a specified commit into a Docker environment, optionally initializing
@@ -107,12 +108,22 @@ def project_git_clone(
     if repo_name.endswith(".git"):
         repo_name = repo_name[:-4]
 
-    builder.workdir(path=workdir)
-    builder.run(command=f"git clone {git_url}")
-    builder.workdir(path=repo_name)
-    builder.run(command=f"git checkout {commit}")
-    if submodule_init_recursive:
-        builder.run(command="git submodule update --init --recursive")
+    if single_run_command:
+        commands = [
+            f"cd {workdir}",
+            f"git clone {git_url}",
+            f"cd {repo_name}",
+            f"git checkout {commit}",
+        ] + (["git submodule update --init --recursive"] if submodule_init_recursive else [])
+
+        builder.run_multiple(commands=commands)
+    else:
+        builder.workdir(path=workdir)
+        builder.run(command=f"git clone {git_url}")
+        builder.workdir(path=repo_name)
+        builder.run(command=f"git checkout {commit}")
+        if submodule_init_recursive:
+            builder.run(command="git submodule update --init --recursive")
 
     return repo_name
 
