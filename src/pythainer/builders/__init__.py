@@ -207,6 +207,18 @@ class PartialDockerBuilder:
         """
         self._build_commands.append(AddPkgDockerBuildCommand(packages=packages))
 
+    def copy(self, filename: str, destination: str) -> None:
+        """
+        Copies a file to the docker container
+
+        Parameters:
+            filename (str): The file to copy to the container.
+            destination: The location to place the file within the Docker container.
+        """
+        filepath = os.path.relpath(os.path.abspath(filename), '/tmp')
+        cmd = f"COPY {filename} {destination}"
+        self._build_commands.append(StrDockerBuildCommand(cmd))
+
 
 class DockerBuilder(PartialDockerBuilder):
     """
@@ -353,7 +365,7 @@ class DockerBuilder(PartialDockerBuilder):
         with open(output_path, "w") as script_file:
             script_file.write(file_content)
 
-    def build(self, dockerfile_savepath: PathType = "") -> None:
+    def build(self, dockerfile_savepath: PathType = "", docker_context: PathType = "") -> None:
         """
         Builds the Docker image using the generated Dockerfile and specified Docker build directory.
 
@@ -375,7 +387,7 @@ class DockerBuilder(PartialDockerBuilder):
 
             command = self.get_build_commands(
                 dockerfile_path=dockerfile_path,
-                docker_build_dir=temp_path,
+                docker_build_dir=Path(os.path.abspath(docker_context)) if docker_context else temp_path,
                 uid=get_uid(),
                 gid=get_gid(),
             )
