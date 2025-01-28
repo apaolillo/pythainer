@@ -8,6 +8,7 @@ including CLSPV and RTDE (Robot Data Exchange), using the Pythainer package.
 
 import pathlib
 
+from typing import Dict
 from pythainer.builders import DockerBuilder, PartialDockerBuilder
 from pythainer.builders.utils import (
     project_cmake_build_install,
@@ -181,6 +182,7 @@ def opencv_lib_install_from_src(
     commit_contrib: str = "4.8.1",
     debug: bool = True,
     cleanup: bool = True,
+    extra_cmake_options: Dict[str, str] = None,
 ) -> None:
     """
     Installs the OpenCV library from source using a Docker builder, including optional contrib
@@ -201,6 +203,9 @@ def opencv_lib_install_from_src(
             Defaults to True.
         cleanup (bool): Whether to remove the contrib repository after installation.
             Defaults to True.
+        extra_cmake_options (Dict[str, str]):
+            Additional CMake options to pass to the build process.
+            Defaults to None.
     """
 
     builder.desc("Build & Install OpenCV from source")
@@ -225,7 +230,7 @@ def opencv_lib_install_from_src(
             "BUILD_opencv_legacy": "OFF",
             "WITH_CUDA": "ON",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
-        },
+        }|extra_cmake_options,
         cleanup=cleanup,
     )
 
