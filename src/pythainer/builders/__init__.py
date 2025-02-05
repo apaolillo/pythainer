@@ -400,7 +400,10 @@ class DockerBuilder(PartialDockerBuilder):
                 output_is_log=True,
             )
 
-    def get_runner(self) -> ConcreteDockerRunner:
+    def get_runner(
+        self,
+        workdir: PathType | None = None,
+    ) -> ConcreteDockerRunner:
         """
         Returns a concrete runner using the image built in the current builder.
         This runner might be immediately used.
@@ -411,6 +414,7 @@ class DockerBuilder(PartialDockerBuilder):
         return ConcreteDockerRunner(
             image=self._tag,
             name=self._tag,
+            workdir=workdir,
         )
 
     def __or__(

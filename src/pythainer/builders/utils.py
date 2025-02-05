@@ -132,6 +132,7 @@ def project_cmake_build_install(
     builder: PartialDockerBuilder,
     workdir: PathType,
     repo_name: str,
+    cmake_src_dir: str = "..",
     generator: str = "",
     cmake_options: Dict[str, str] | None = None,
     install: bool = True,
@@ -144,6 +145,7 @@ def project_cmake_build_install(
         builder (PartialDockerBuilder): The builder to use for Docker commands.
         workdir (PathType): The base directory for the project within the Docker environment.
         repo_name (str): The name of the repository containing the source code.
+        cmake_src_dir (str): The path to the source code directory.
         generator (str): The make system generator to use (e.g., 'ninja', 'make').
         cmake_options (Dict[str, str]): Options to pass to the cmake command.
         install (bool): Whether to run the 'make install' or equivalent command.
@@ -151,6 +153,7 @@ def project_cmake_build_install(
                         Defaults to True.
     """
     project_path = Path(workdir) / repo_name
+    cmake_src_dir = cmake_src_dir if cmake_src_dir else ".."
 
     if generator or cmake_options:
         list_options = []
@@ -161,9 +164,9 @@ def project_cmake_build_install(
 
         spaces = " " * 8
         list_options_fmt = [f"{spaces}{o} \\\n" for o in list_options]
-        cmake_cmd = "cmake \\\n" + "".join(list_options_fmt) + f"{spaces}.."
+        cmake_cmd = "cmake \\\n" + "".join(list_options_fmt) + f"{spaces}{cmake_src_dir}"
     else:
-        cmake_cmd = "cmake .."
+        cmake_cmd = f"cmake {cmake_src_dir}"
     if not generator:
         generator = "make"
 
@@ -188,13 +191,16 @@ def project_cmake_build_install(
 
 
 def project_git_cmake_build_install(
-    builder: DockerBuilder,
+    builder: PartialDockerBuilder,
     workdir: PathType,
     git_url: str,
     commit: str,
     patch_commands: List[str] = (),
     submodule_init_recursive: bool = False,
+    cmake_src_dir: str = "..",
+    generator: str = "",
     cmake_options: Dict[str, str] | None = None,
+    install: bool = True,
     cleanup: bool = True,
 ) -> None:
     """
@@ -210,7 +216,10 @@ def project_git_cmake_build_install(
         patch_commands (List[str]): A list of shell commands to apply patches or other pre-build
                                     modifications.
         submodule_init_recursive (bool): Whether to recursively initialize Git submodules.
+        cmake_src_dir (str): The path to the source code directory.
+        generator (str): The make system generator to use with CMake (e.g., 'ninja', 'make').
         cmake_options (Dict[str, str]): A dictionary of CMake options to pass to the cmake command.
+        install (bool): Whether to run the 'make install' or equivalent command.
         cleanup (bool): Whether to clean up after building. Defaults to True.
     """
     repo_name = project_git_clone(
@@ -228,6 +237,9 @@ def project_git_cmake_build_install(
         builder=builder,
         workdir=workdir,
         repo_name=repo_name,
+        cmake_src_dir=cmake_src_dir,
+        generator=generator,
         cmake_options=cmake_options,
+        install=install,
         cleanup=cleanup,
     )
