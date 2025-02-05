@@ -7,6 +7,7 @@ or user requirements, such as GUI support, camera access, GPU usage, and persona
 """
 
 import os
+import shlex
 from pathlib import Path
 
 from pythainer.runners import DockerRunner
@@ -61,15 +62,14 @@ def camera_runner() -> DockerRunner:
     Returns:
         DockerRunner: A DockerRunner configured with access to video and media device paths.
     """
-
-    all_devices = os.listdir("/dev")
-    devices = ["/dev/bus/usb", "/dev/dri"]
-    devices += [f"/dev/{f}" for f in all_devices if f.startswith("video") or f.startswith("media")]
+    options = '--privileged --device-cgroup-rule="c 81:* rmw" --device-cgroup-rule="c 189:* rmw"'
+    options_split = shlex.split(options)
 
     return DockerRunner(
         environment_variables={},
         volumes={},
-        devices=devices,
+        devices=["/dev"],
+        other_options=options_split,
     )
 
 

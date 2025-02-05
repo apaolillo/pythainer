@@ -167,7 +167,7 @@ def realsense2_lib_install_from_src(
         commit=commit,
         submodule_init_recursive=False,
         cmake_options={
-            "FORCE_RSUSB_BACKEND": "true",
+            "FORCE_RSUSB_BACKEND": "false",
             "BUILD_EXAMPLES": "true",
             "BUILD_GRAPHICAL_EXAMPLES": "true",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
