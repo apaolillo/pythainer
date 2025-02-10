@@ -14,6 +14,7 @@ from pythainer.builders.utils import (
     project_cmake_build_install,
     project_git_clone,
     project_git_cmake_build_install,
+    project_dpkg_install,
 )
 
 
@@ -237,3 +238,20 @@ def opencv_lib_install_from_src(
 
     if cleanup:
         builder.run(f"rm -rf {contrib_repo_name}")
+
+def tensor_rt_lib_install_from_deb(
+    builder: DockerBuilder,
+    workdir: str = "/tmp",
+    OS: str = "ubuntu2204",
+    TAG: str = "10.7.0-cuda-12.6"
+):
+    project_dpkg_install(
+        builder=builder,
+        workdir=workdir,
+        package_name="nv-tensorrt-repo",
+        package_url=f"https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.7.0/local_repo/nv-tensorrt-local-repo-{OS}-{TAG}_1.0-1_amd64.deb",
+        extra_commands_before_install=f"cp /var/nv-tensorrt-local-repo-{OS}-{TAG}/*-keyring.gpg /usr/share/keyrings/",
+    )
+    
+
+    builder.add_packages(packages=["tensorrt=10.7.0.23-1+cuda12.6"])

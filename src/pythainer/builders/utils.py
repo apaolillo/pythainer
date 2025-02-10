@@ -243,3 +243,90 @@ def project_git_cmake_build_install(
         install=install,
         cleanup=cleanup,
     )
+
+def remove_files(
+        builder: PartialDockerBuilder,
+        file_path: PathType
+        ) -> None:
+    """
+    Lock cuda version by remove the cuda.list
+    """
+    if Path.exists(file_path):
+        builder.run(
+            command=f"rm -f {file_path}"
+        )
+
+def wget_from_url(
+        builder: PartialDockerBuilder,
+        package_name: str,
+        package_url: str,
+        package_savepath: PathType = Path("/tmp")
+) -> None:
+    """
+    Download package with wget command from the input address
+    """
+    builder.run(
+        command=f"wget -qO {package_savepath / package_name}.deb {package_url}"
+    )
+
+def install_package_from_deb(
+        builder: PartialDockerBuilder,
+        package_name: str,
+        package_path: PathType = Path("/tmp")
+) -> None:
+    """
+    Installs a package from a .deb file.
+    """
+    if package_path:
+        package_name = Path(package_path) / package_name
+    if not str(package_name).endswith(".deb"):
+        package_name = f"{package_name}.deb"
+    builder.run(
+        command=f"dpkg -i {package_name}"
+    )
+
+def project_dpkg_install(
+    builder: PartialDockerBuilder,
+    workdir: PathType,
+    package_name: str,
+    package_url: str,
+    install: bool=True,
+    cleanup: bool=True,
+    extra_commands_before_install: str = "",
+    extra_copy_filename: str="",
+    extra_copy_destination: PathType="",
+) -> None:
+    """
+    download a package from website, install the package
+
+    Parameters:
+        builder (DockerBuilder): The Docker builder to execute the commands.
+        workdir (PathType): The directory within the Docker environment where the package will be
+                            download
+        package_url (str): The URL of the package to install.
+        install (bool): Whether to install the package instantly. Defaults to True.
+        cleanup (bool): Whether to clean up after installing. Defaults to True.
+    """
+    wget_from_url(
+        builder=builder,
+        package_name=package_name,
+        package_url=package_url
+    )
+    
+    if install:
+        builder.run(f"find /var")
+        if extra_commands_before_install != "":
+            builder.run(extra_commands_before_install)
+        if (extra_copy_filename != "") and (extra_copy_destination != ""):
+            
+            builder.copy(filename=extra_copy_filename, destination=extra_copy_destination)
+        install_package_from_deb(
+            builder=builder,
+            package_name=package_name,
+            package_path=workdir
+        )
+    if cleanup:
+        remove_files(
+            builder=builder,
+            file_path= Path (workdir) / package_name
+        )
