@@ -7,8 +7,8 @@ including CLSPV and RTDE (Robot Data Exchange), using the Pythainer package.
 """
 
 import pathlib
-
 from typing import Dict
+
 from pythainer.builders import DockerBuilder, PartialDockerBuilder
 from pythainer.builders.utils import (
     project_cmake_build_install,
@@ -167,7 +167,7 @@ def realsense2_lib_install_from_src(
         commit=commit,
         submodule_init_recursive=False,
         cmake_options={
-            "FORCE_RSUSB_BACKEND": "true",
+            "FORCE_RSUSB_BACKEND": "false",
             "BUILD_EXAMPLES": "true",
             "BUILD_GRAPHICAL_EXAMPLES": "true",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
@@ -230,7 +230,8 @@ def opencv_lib_install_from_src(
             "BUILD_opencv_legacy": "OFF",
             "WITH_CUDA": "ON",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
-        }|extra_cmake_options,
+        }
+        | extra_cmake_options,
         cleanup=cleanup,
     )
 

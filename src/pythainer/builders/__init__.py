@@ -400,7 +400,10 @@ class DockerBuilder(PartialDockerBuilder):
                 output_is_log=True,
             )
 
-    def get_runner(self) -> ConcreteDockerRunner:
+    def get_runner(
+        self,
+        workdir: PathType | None = None,
+    ) -> ConcreteDockerRunner:
         """
         Returns a concrete runner using the image built in the current builder.
         This runner might be immediately used.
@@ -411,6 +414,7 @@ class DockerBuilder(PartialDockerBuilder):
         return ConcreteDockerRunner(
             image=self._tag,
             name=self._tag,
+            workdir=workdir,
         )
 
     def __or__(
@@ -463,16 +467,16 @@ class UbuntuDockerBuilder(DockerBuilder):
         Runs the 'unminimize' command to restore an Ubuntu image to its full version,
         undoing the 'minimize' effect.
         """
+        # only install if "unminimize" package is present:
         self.run_multiple(
             commands=[
                 "apt-get update",
-                "apt-cache show unminimize",  # only install if "unminimize" package is present.
-                "apt-get install -y unminimize",
+                "((apt-cache show unminimize && apt-get install -y unminimize) || true)",
                 "rm -rf /var/lib/apt/lists/*",
             ]
         )
 
-        self.run(command="yes | unminimize")
+        self.run(command="if which unminimize; then yes | unminimize; fi")
 
     def remove_group_if_gid_exists(self, gid: str) -> None:
         """
