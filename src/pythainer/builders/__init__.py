@@ -478,6 +478,16 @@ class UbuntuDockerBuilder(DockerBuilder):
 
         self.run(command="if which unminimize; then yes | unminimize; fi")
 
+    def lock_cuda_version(self) -> None:
+        """
+        Lock cuda version by remove the cuda.list
+        """
+        self.run_multiple(
+            commands=[
+                "rm -f /etc/apt/sources.list.d/cuda*.list"
+            ]
+        )
+
     def remove_group_if_gid_exists(self, gid: str) -> None:
         """
         Removes a system group by its GID if it exists within the Docker environment.
