@@ -478,7 +478,6 @@ class UbuntuDockerBuilder(DockerBuilder):
 
         self.run(command="if which unminimize; then yes | unminimize; fi")
 
-
     def remove_group_if_gid_exists(self, gid: str) -> None:
         """
         Removes a system group by its GID if it exists within the Docker environment.
