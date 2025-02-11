@@ -244,56 +244,35 @@ def project_git_cmake_build_install(
         cleanup=cleanup,
     )
 
-def remove_files(
-        builder: PartialDockerBuilder,
-        file_path: PathType
-        ) -> None:
-    """
-    Remove the file
-    """
-    if Path.exists(file_path):
-        builder.run(
-            command=f"rm -f {file_path}"
-        )
-
-def wget_from_url(
-        builder: PartialDockerBuilder,
-        package_name: str,
-        package_url: str,
-        package_savepath: PathType = Path("/tmp")
-) -> None:
-    """
-    Download package with wget command from the input address
-    """
-    builder.run(
-        command=f"wget -qO {package_savepath / package_name}.deb {package_url}"
-    )
 
 def install_package_from_deb(
-        builder: PartialDockerBuilder,
-        package_name: str,
-        package_path: PathType = Path("/tmp")
-) -> None:
+    builder: PartialDockerBuilder,
+    package_name: str,
+    package_path: PathType = Path("/tmp"),
+    use_dpkg_install: bool = False,
+) -> str:
     """
-    Installs a package from a .deb file.
+    Return a command to install a package from a .deb file.
     """
     if package_path:
         package_name = Path(package_path) / package_name
     if not str(package_name).endswith(".deb"):
         package_name = f"{package_name}.deb"
-    builder.run(
-        command=f"dpkg -i {package_name}"
-    )
+    if use_dpkg_install:
+        return f"dpkg -i {package_name}"
+    return f"apt-get install {package_name}"
 
-def project_dpkg_install(
+
+def project_deb_download_install(
     builder: PartialDockerBuilder,
     workdir: PathType,
     package_name: str,
     package_url: str,
-    install: bool=True,
-    cleanup: bool=True,
-    extra_commands_before_install: list[str]=None,
-    extra_commands_after_install: list[str]=None,
+    install: bool = True,
+    cleanup: bool = True,
+    extra_commands_before_install: list[str] = None,
+    extra_commands_after_install: list[str] = None,
+    use_dpkg_install: bool = False,
 ) -> None:
     """
     download a package from website, install the package
@@ -306,24 +285,24 @@ def project_dpkg_install(
         install (bool): Whether to install the package instantly. Defaults to True.
         cleanup (bool): Whether to clean up after installing. Defaults to True.
     """
-    wget_from_url(
-        builder=builder,
-        package_name=package_name,
-        package_url=package_url
-    )
-    
+    commands = [
+        f"wget -qO {Path(workdir) / package_name}.deb {package_url}",
+    ]
+
     if install:
         if extra_commands_before_install is not None:
-            builder.run_multiple(commands=extra_commands_before_install)
-        install_package_from_deb(
-            builder=builder,
-            package_name=package_name,
-            package_path=workdir
+            commands.extend(extra_commands_before_install)
+        commands.append(
+            install_package_from_deb(
+                builder=builder,
+                package_name=package_name,
+                package_path=workdir,
+                use_dpkg_install=use_dpkg_install,
+            )
         )
         if extra_commands_after_install is not None:
-            builder.run_multiple(commands=extra_commands_after_install)
+            commands.extend(extra_commands_after_install)
     if cleanup:
-        remove_files(
-            builder=builder,
-            file_path= Path (workdir) / package_name
-        )
+        commands.append(f"rm -f {Path (workdir) / package_name}")
+
+    builder.run_multiple(commands=commands)
