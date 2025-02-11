@@ -249,7 +249,7 @@ def remove_files(
         file_path: PathType
         ) -> None:
     """
-    Lock cuda version by remove the cuda.list
+    Remove the file
     """
     if Path.exists(file_path):
         builder.run(
@@ -292,9 +292,8 @@ def project_dpkg_install(
     package_url: str,
     install: bool=True,
     cleanup: bool=True,
-    extra_commands_before_install: str = "",
-    extra_copy_filename: str="",
-    extra_copy_destination: PathType="",
+    extra_commands_before_install: list[str]=None,
+    extra_commands_after_install: list[str]=None,
 ) -> None:
     """
     download a package from website, install the package
@@ -314,17 +313,15 @@ def project_dpkg_install(
     )
     
     if install:
-        builder.run(f"find /var")
-        if extra_commands_before_install != "":
-            builder.run(extra_commands_before_install)
-        if (extra_copy_filename != "") and (extra_copy_destination != ""):
-            
-            builder.copy(filename=extra_copy_filename, destination=extra_copy_destination)
+        if extra_commands_before_install is not None:
+            builder.run_multiple(commands=extra_commands_before_install)
         install_package_from_deb(
             builder=builder,
             package_name=package_name,
             package_path=workdir
         )
+        if extra_commands_after_install is not None:
+            builder.run_multiple(commands=extra_commands_after_install)
     if cleanup:
         remove_files(
             builder=builder,
