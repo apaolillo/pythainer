@@ -12,6 +12,7 @@ from typing import Dict
 from pythainer.builders import DockerBuilder, PartialDockerBuilder
 from pythainer.builders.utils import (
     project_cmake_build_install,
+    project_deb_download_install,
     project_git_clone,
     project_git_cmake_build_install,
 )
@@ -237,3 +238,80 @@ def opencv_lib_install_from_src(
 
     if cleanup:
         builder.run(f"rm -rf {contrib_repo_name}")
+
+
+def tensor_rt_lib_install_from_deb(
+    builder: DockerBuilder,
+    workdir: str = "/tmp",
+    os: str = "ubuntu2204",
+    tag: str = "10.7.0",
+    cuda_tag: str = "12.6",
+):
+    """
+    Install TensorRT library from a .deb package into a Docker image.
+
+    Parameters:
+        builder (DockerBuilder): An instance of DockerBuilder for executing commands.
+        workdir (str): Working directory inside the container where the package will be downloaded.
+        os (str): Operating system identifier, used in forming the download URL.
+        tag (str): Version tag of the TensorRT library, used in forming the download URL.
+        cuda_tag (str): CUDA version tag, used in forming the download URL.
+    """
+    tensorrt_download_url = f"https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{tag}/local_repo/nv-tensorrt-local-repo-{os}-{tag}-cuda-{cuda_tag}_1.0-1_amd64.deb"
+    project_deb_download_install(
+        builder=builder,
+        workdir=workdir,
+        package_name="nv-tensorrt-repo",
+        package_url=tensorrt_download_url,
+        extra_commands_before_install=["rm -f /etc/apt/sources.list.d/cuda*.list"],
+        extra_commands_after_install=[
+            f"cp /var/nv-tensorrt-local-repo-{os}-{tag}-cuda-{cuda_tag}/*-keyring.gpg /usr/share/keyrings/"
+        ],
+    )
+    # Pin the local repository to force using the given versions.
+    builder.run_multiple(
+        commands=[
+            'echo "Package: tensorrt libnvinfer* libnvonnxparsers* libnvinfer-*" > '
+            "/etc/apt/preferences.d/99-nv-tensorrt",
+            f'echo "Pin: release o=nv-tensorrt-local-repo-{os}-{tag}-cuda-{cuda_tag}" >> '
+            "/etc/apt/preferences.d/99-nv-tensorrt",
+            'echo "Pin-Priority: 1001" >> /etc/apt/preferences.d/99-nv-tensorrt',
+        ]
+    )
+
+    builder.add_packages(packages=[f"tensorrt={tag}.23-1+cuda{cuda_tag}"])
+
+
+def cudnn_lib_install_from_deb(
+    builder: DockerBuilder,
+    workdir: str = "/tmp",
+    os: str = "ubuntu2204",
+    tag: str = "8.8.0.121",
+):
+    """
+    Install cuDNN library from a .deb package into a Docker image.
+
+    Parameters:
+        builder (DockerBuilder): An instance of DockerBuilder for executing commands.
+        workdir (str): Working directory inside the container where the package will be downloaded.
+        os (str): Operating system identifier, used in forming the download URL.
+        tag (str): Version tag of the cuDNN library, also used in forming the download URL.
+    """
+    cudnn_download_url = f"https://developer.download.nvidia.com/compute/redist/cudnn/v8.8.0/local_installers/12.0/cudnn-local-repo-{os}-{tag}_1.0-1_amd64.deb"
+    project_deb_download_install(
+        builder=builder,
+        workdir=workdir,
+        package_name="cudnn-local-repo",
+        package_url=cudnn_download_url,
+        extra_commands_after_install=[
+            "cp /var/cudnn-local-repo-*/cudnn-local-*-keyring.gpg /usr/share/keyrings/"
+        ],
+    )
+
+    builder.add_packages(
+        packages=[
+            "libcudnn8",
+            "libcudnn8-dev",
+            "libcudnn8-samples",
+        ]
+    )

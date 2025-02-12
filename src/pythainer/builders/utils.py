@@ -243,3 +243,67 @@ def project_git_cmake_build_install(
         install=install,
         cleanup=cleanup,
     )
+
+
+def install_package_from_deb(
+    package_name: str,
+    package_path: PathType = Path("/tmp"),
+    use_dpkg_install: bool = False,
+) -> str:
+    """
+    Return a command to install a package from a .deb file.
+    """
+    if package_path:
+        package_name = Path(package_path) / package_name
+    if not str(package_name).endswith(".deb"):
+        package_name = f"{package_name}.deb"
+    if use_dpkg_install:
+        return f"dpkg -i {package_name}"
+    return f"apt-get install {package_name}"
+
+
+def project_deb_download_install(
+    builder: PartialDockerBuilder,
+    workdir: PathType,
+    package_name: str,
+    package_url: str,
+    install: bool = True,
+    cleanup: bool = True,
+    extra_commands_before_install: list[str] = None,
+    extra_commands_after_install: list[str] = None,
+    use_dpkg_install: bool = False,
+) -> None:
+    """
+    Downloads and installs a .deb package in Docker.
+
+    Parameters:
+        builder (PartialDockerBuilder): The Docker builder to execute commands.
+        workdir (PathType): Directory within Docker for downloading package.
+        package_name (str): Name of the package.
+        package_url (str): URL to download the package.
+        install (bool): Install the package after download. Default is True.
+        cleanup (bool): Remove the package after install. Default is True.
+        extra_commands_before_install (list[str]): Commands before installation.
+        extra_commands_after_install (list[str]): Commands after installation.
+        use_dpkg_install (bool): Use dpkg to install. Default is False.
+    """
+    commands = [
+        f"wget -qO {Path(workdir) / package_name}.deb {package_url}",
+    ]
+
+    if install:
+        if extra_commands_before_install is not None:
+            commands.extend(extra_commands_before_install)
+        commands.append(
+            install_package_from_deb(
+                package_name=package_name,
+                package_path=workdir,
+                use_dpkg_install=use_dpkg_install,
+            )
+        )
+        if extra_commands_after_install is not None:
+            commands.extend(extra_commands_after_install)
+    if cleanup:
+        commands.append(f"rm -f {Path (workdir) / package_name}")
+
+    builder.run_multiple(commands=commands)
