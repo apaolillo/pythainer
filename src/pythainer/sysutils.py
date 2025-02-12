@@ -38,7 +38,7 @@ def _print_cmd(
         printed_env = ""
     printed_cmd = " ".join(command)
     full_printed_cmd = printed_env + printed_cmd
-    print(f"[{full_printed_cmd}]")
+    print(f"[SHELL] {full_printed_cmd}")
 
 
 def shell_out(
