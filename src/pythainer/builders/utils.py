@@ -246,7 +246,6 @@ def project_git_cmake_build_install(
 
 
 def install_package_from_deb(
-    builder: PartialDockerBuilder,
     package_name: str,
     package_path: PathType = Path("/tmp"),
     use_dpkg_install: bool = False,
@@ -275,15 +274,18 @@ def project_deb_download_install(
     use_dpkg_install: bool = False,
 ) -> None:
     """
-    download a package from website, install the package
+    Downloads and installs a .deb package in Docker.
 
     Parameters:
-        builder (DockerBuilder): The Docker builder to execute the commands.
-        workdir (PathType): The directory within the Docker environment where the package will be
-                            download
-        package_url (str): The URL of the package to install.
-        install (bool): Whether to install the package instantly. Defaults to True.
-        cleanup (bool): Whether to clean up after installing. Defaults to True.
+        builder (PartialDockerBuilder): The Docker builder to execute commands.
+        workdir (PathType): Directory within Docker for downloading package.
+        package_name (str): Name of the package.
+        package_url (str): URL to download the package.
+        install (bool): Install the package after download. Default is True.
+        cleanup (bool): Remove the package after install. Default is True.
+        extra_commands_before_install (list[str]): Commands before installation.
+        extra_commands_after_install (list[str]): Commands after installation.
+        use_dpkg_install (bool): Use dpkg to install. Default is False.
     """
     commands = [
         f"wget -qO {Path(workdir) / package_name}.deb {package_url}",
@@ -294,7 +296,6 @@ def project_deb_download_install(
             commands.extend(extra_commands_before_install)
         commands.append(
             install_package_from_deb(
-                builder=builder,
                 package_name=package_name,
                 package_path=workdir,
                 use_dpkg_install=use_dpkg_install,
