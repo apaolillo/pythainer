@@ -122,6 +122,7 @@ def realsense2_lib_install_from_src(
     workdir: str,
     commit: str = "v2.55.1",
     debug: bool = True,
+    extra_cmake_options: Dict[str, str] = None,
 ) -> None:
     """
     Installs the Intel Realsense library from source using a Docker builder, including necessary
@@ -132,6 +133,7 @@ def realsense2_lib_install_from_src(
         workdir (str): The working directory path where to clone the source repository.
         commit (str): The specific git commit hash to checkout for the build.
         debug (bool): Whether to build in Debug mode. Defaults to True.
+        extra_cmake_options (Dict[str, str]): Additional CMake options to pass to the build process. Defaults to None.
     """
 
     builder.desc("Build & Install librealsense2 from source")
@@ -171,7 +173,7 @@ def realsense2_lib_install_from_src(
             "BUILD_EXAMPLES": "true",
             "BUILD_GRAPHICAL_EXAMPLES": "true",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
-        },
+        } | extra_cmake_options,
     )
 
 
