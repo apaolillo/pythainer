@@ -122,7 +122,7 @@ def realsense2_lib_install_from_src(
     workdir: str,
     commit: str = "v2.55.1",
     debug: bool = True,
-    extra_cmake_options: Dict[str, str] = None,
+    extra_cmake_options: Dict[str, str] = {},
 ) -> None:
     """
     Installs the Intel Realsense library from source using a Docker builder, including necessary
