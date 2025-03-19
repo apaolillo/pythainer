@@ -261,7 +261,7 @@ class ConcreteDockerRunner(DockerRunner):
 
     def generate_script(
         self,
-        output_path: PathType = "/tmp/benchkit/docker/latest/docker-run.sh",
+        output_path: PathType = "/tmp/pythainer/docker/latest/docker-run.sh",
     ):
         """
         Generates a script file to run the Docker container with the current configuration.
