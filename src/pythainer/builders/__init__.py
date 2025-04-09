@@ -473,16 +473,7 @@ class UbuntuDockerBuilder(DockerBuilder):
         Runs the 'unminimize' command to restore an Ubuntu image to its full version,
         undoing the 'minimize' effect.
         """
-        # only install if "unminimize" package is present:
-        self.run_multiple(
-            commands=[
-                "apt-get update",
-                "((apt-cache show unminimize && apt-get install -y unminimize) || true)",
-                "rm -rf /var/lib/apt/lists/*",
-            ]
-        )
-
-        self.run(command="if which unminimize; then yes | unminimize; fi")
+        self.run(command="yes | unminimize")
 
     def remove_group_if_gid_exists(self, gid: str) -> None:
         """
