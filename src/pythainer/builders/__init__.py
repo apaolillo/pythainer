@@ -306,11 +306,10 @@ class DockerBuilder(PartialDockerBuilder):
         if gid is not None:
             build_args.append(f"--build-arg=GID={gid}")
 
-
-        try:
-            docker_path = subprocess.check_output(["which", "docker"], text=True).strip()
-        except subprocess.CalledProcessError:
-            print("Docker not found")
+        docker_path = shell_out(
+            command=["which", "docker"],
+            output_is_log=False,
+        )
 
         command = (
             [
@@ -399,7 +398,7 @@ class DockerBuilder(PartialDockerBuilder):
             )
 
             environment = self.get_build_environment()
-            
+
             shell_out(
                 command=command,
                 current_dir=temp_path,
