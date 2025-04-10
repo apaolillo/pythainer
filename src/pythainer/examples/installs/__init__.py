@@ -334,7 +334,7 @@ def nsight_systems_install(
         builder.run_multiple(
             commands=[
                 f"apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/{os}/x86_64/7fa2af80.pub",
-                "add-apt-repository \"deb https://developer.download.nvidia.com/devtools/repos/ubuntu$(source /etc/lsb-release; echo \"$DISTRIB_RELEASE\" | tr -d .)/$(dpkg --print-architecture)/ /\"",
+                "add-apt-repository \"deb https://developer.download.nvidia.com/devtools/repos/ubuntu$(. /etc/lsb-release; echo \"$DISTRIB_RELEASE\" | tr -d .)/$(dpkg --print-architecture)/ /\"",
             ]
         )
     else:
