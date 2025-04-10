@@ -262,7 +262,7 @@ class DockerBuilder(PartialDockerBuilder):
 
         all_dockerfile_paths = dockerfile_paths + [
             "/tmp/Dockerfile",
-            "/tmp/benchkit/docker/latest/Dockerfile",
+            "/tmp/pythainer/docker/latest/Dockerfile",
         ]
 
         for dockerfile_path in all_dockerfile_paths:
@@ -305,9 +305,14 @@ class DockerBuilder(PartialDockerBuilder):
         if gid is not None:
             build_args.append(f"--build-arg=GID={gid}")
 
+        docker_path = shell_out(
+            command=["which", "docker"],
+            output_is_log=False,
+        )
+
         command = (
             [
-                "docker",
+                docker_path,
                 "build",
                 "--file",
                 f"{dockerfile_path}",
@@ -323,7 +328,7 @@ class DockerBuilder(PartialDockerBuilder):
 
     def generate_build_script(
         self,
-        output_path: PathType = "/tmp/benchkit/docker/latest/docker-build.sh",
+        output_path: PathType = "/tmp/pythainer/docker/latest/docker-build.sh",
     ) -> None:
         """
         Generates a shell script to execute the Docker build commands.
@@ -371,10 +376,10 @@ class DockerBuilder(PartialDockerBuilder):
         Parameters:
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
         """
-        main_dir = Path("/tmp/benchkit/docker/")
+        main_dir = Path("/tmp/pythainer/docker/")
         mkdir(main_dir)
         with tempfile.TemporaryDirectory(
-            prefix="/tmp/benchkit/docker/docker-build-",
+            prefix="/tmp/pythainer/docker/docker-build-",
             dir=main_dir,
         ) as temp_dir:
             temp_path = Path(temp_dir)
@@ -567,7 +572,7 @@ class DockerfileDockerBuilder(DockerBuilder):
 
     def generate_build_script(
         self,
-        output_path: PathType = "/tmp/benchkit/docker/latest/docker-build.sh",
+        output_path: PathType = "/tmp/pythainer/docker/latest/docker-build.sh",
     ) -> None:
         raise NotImplementedError()
 
