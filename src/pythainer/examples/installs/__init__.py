@@ -317,3 +317,32 @@ def cudnn_lib_install_from_deb(
             "libcudnn8-samples",
         ]
     )
+
+def nsight_systems_install(
+    builder: DockerBuilder,
+    os : str =  "ubuntu1804",
+):
+    """
+    Install nsight following https://docs.nvidia.com/nsight-systems/InstallationGuide/index.html
+    Currently only ubuntu1804 for all linux version
+
+    Parameters:
+        builder (DockerBuilder): An instance of DockerBuilder for executing commands.
+        os (str): Operating system identifier, used in forming the download URL, currently only ubuntu1804 for all linux version.
+    """
+    if os == "ubuntu1804":
+        builder.run_multiple(
+            commands=[
+                f"apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/{os}/x86_64/7fa2af80.pub",
+                "add-apt-repository \"deb https://developer.download.nvidia.com/devtools/repos/ubuntu$(source /etc/lsb-release; echo \"$DISTRIB_RELEASE\" | tr -d .)/$(dpkg --print-architecture)/ /\"",
+            ]
+        )
+    else:
+        # TODO: Add support for other OSes
+        raise ValueError(f"Unsupported OS: {os}. Currently, only 'ubuntu1804' is supported.")
+
+    builder.add_packages(
+        packages=[
+            "nsight-systems"
+        ]
+    )
