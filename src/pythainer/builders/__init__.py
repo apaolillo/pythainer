@@ -7,7 +7,6 @@ handling commands like package installation, environment variable setting, and u
 tailored specifically for Docker environments.
 """
 import os
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Dict, List
