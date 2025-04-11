@@ -241,6 +241,57 @@ def vulkan_builder() -> PartialDockerBuilder:
     return builder
 
 
+def vTune_builder() -> PartialDockerBuilder:
+    """
+    Configures a Docker builder for Vulkan development, preparing the environment
+    and installing necessary Vulkan packages.
+
+    Returns:
+        PartialDockerBuilder: A Docker builder ready for Vulkan development.
+    """
+
+    builder = PartialDockerBuilder()
+    builder.space()
+
+    builder.root()
+    builder.add_packages(
+        packages=[
+            "linux-headers-6.8.0-52-generic",
+            "libnss3-dev",
+            "libgdk-pixbuf2.0-dev",
+            "libgtk-3-dev",
+            "libxss-dev",
+            "libasound2",
+            "xdg-utils", #TODO: this is to vieuw documentation but this seems to not be enough
+            "kmod"
+        ]
+    )
+
+    builder.user()
+    builder.workdir(path="/tmp")
+    builder.run(command='wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB')
+    builder.run(command='sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB')
+    builder.run(command='rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB')
+    builder.run(command='echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list')
+
+    builder.root()
+    builder.run(command='apt update')
+    builder.add_packages(
+        packages=[
+            "intel-oneapi-vtune"
+            ]
+    )
+    builder.user()
+
+    builder.space()
+
+    return builder
+    """
+    Run "echo "0" | sudo tee /proc/sys/kernel/yama/ptrace_scope > /dev/null" on host
+        -> this comes with securety concerns only do if you know what you are dealing with
+    """
+
+
 def clspv_builder() -> PartialDockerBuilder:
     """
     Prepares a Docker builder specifically for building and installing CLSPV,
