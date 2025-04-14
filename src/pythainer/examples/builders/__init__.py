@@ -243,11 +243,15 @@ def vulkan_builder() -> PartialDockerBuilder:
 
 def vTune_builder() -> PartialDockerBuilder:
     """
-    Configures a Docker builder for Vulkan development, preparing the environment
-    and installing necessary Vulkan packages.
+    Configures a Docker builder so it can use the intel vtune profiler.
+    Due to how this implementation works you will need to do adaptations to the host system.
+    One such is:
+    Run "echo "0" | sudo tee /proc/sys/kernel/yama/ptrace_scope > /dev/null" on host
+        -> this comes with securety concerns only do if you know what you are dealing with
+
 
     Returns:
-        PartialDockerBuilder: A Docker builder ready for Vulkan development.
+        PartialDockerBuilder: A Docker builder ready to use the intel vtune profiler.
     """
 
     builder = PartialDockerBuilder()
@@ -262,17 +266,20 @@ def vTune_builder() -> PartialDockerBuilder:
             "libgtk-3-dev",
             "libxss-dev",
             "libasound2",
-            "xdg-utils", #TODO: this is to vieuw documentation but this seems to not be enough
+            "xdg-utils", #TODO: this is to view documentation but this seems to not be enough
             "kmod"
         ]
     )
 
     builder.user()
     builder.workdir(path="/tmp")
-    builder.run(command='wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB')
-    builder.run(command='sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB')
-    builder.run(command='rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB')
-    builder.run(command='echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list')
+    builder.run_multiple([
+            'wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
+            'sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
+            'rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
+            'echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list'
+            ]
+    )
 
     builder.root()
     builder.run(command='apt update')
@@ -282,15 +289,9 @@ def vTune_builder() -> PartialDockerBuilder:
             ]
     )
     builder.user()
-
     builder.space()
 
     return builder
-    """
-    Run "echo "0" | sudo tee /proc/sys/kernel/yama/ptrace_scope > /dev/null" on host
-        -> this comes with securety concerns only do if you know what you are dealing with
-    """
-
 
 def clspv_builder() -> PartialDockerBuilder:
     """
