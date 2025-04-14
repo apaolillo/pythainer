@@ -289,6 +289,16 @@ def vTune_builder() -> PartialDockerBuilder:
             ]
     )
     builder.user()
+
+    files_to_source = [
+        "/opt/intel/oneapi/vtune/latest/env/vars.sh"
+    ]
+
+    for file_to_source in files_to_source:
+        builder.run(
+            command=f'echo "[ -e "{file_to_source}" ] && source {file_to_source}" >> ~/.bashrc'
+    )
+
     builder.space()
 
     return builder
