@@ -87,6 +87,7 @@ def project_git_clone(
     workdir: PathType,
     git_url: str,
     commit: str,
+    target_dirname: str = "",
     submodule_init_recursive: bool = False,
     single_run_command: bool = False,
 ) -> str:
@@ -104,14 +105,19 @@ def project_git_clone(
     Returns:
         str: The name of the repository directory.
     """
-    repo_name = git_url.split("/")[-1]
-    if repo_name.endswith(".git"):
-        repo_name = repo_name[:-4]
+    if target_dirname:
+        repo_name = target_dirname
+    else:
+        repo_name = git_url.split("/")[-1]
+        if repo_name.endswith(".git"):
+            repo_name = repo_name[:-4]
+
+    target_dirname_suffix = f" {target_dirname.strip()}" if target_dirname else ""
 
     if single_run_command:
         commands = [
             f"cd {workdir}",
-            f"git clone {git_url}",
+            f"git clone {git_url}{target_dirname_suffix}",
             f"cd {repo_name}",
             f"git checkout {commit}",
         ] + (["git submodule update --init --recursive"] if submodule_init_recursive else [])
@@ -119,13 +125,13 @@ def project_git_clone(
         builder.run_multiple(commands=commands)
     else:
         builder.workdir(path=workdir)
-        builder.run(command=f"git clone {git_url}")
+        builder.run(command=f"git clone {git_url}{target_dirname_suffix}")
         builder.workdir(path=repo_name)
         builder.run(command=f"git checkout {commit}")
         if submodule_init_recursive:
             builder.run(command="git submodule update --init --recursive")
 
-    return repo_name
+    return target_dirname if target_dirname_suffix else repo_name
 
 
 def project_cmake_build_install(
