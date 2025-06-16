@@ -260,3 +260,52 @@ def clspv_builder() -> PartialDockerBuilder:
         cleanup=True,
     )
     return builder
+
+
+def rust_builder(
+    install_rustfmt: bool = True,
+    install_clippy: bool = True,
+    install_cargo_edit: bool = True,
+    install_cargo_watch: bool = False,
+) -> PartialDockerBuilder:
+    """
+    Sets up a Docker builder for Rust development by installing Rust via rustup
+    and optionally adding common development tools.
+
+    Parameters:
+        install_rustfmt (bool): Whether to install the rustfmt formatter.
+        install_clippy (bool): Whether to install the clippy linter.
+        install_cargo_edit (bool): Whether to install cargo-edit (adds `cargo add`, etc.).
+        install_cargo_watch (bool): Whether to install cargo-watch for file change detection.
+
+    Returns:
+        PartialDockerBuilder: Docker builder configured for Rust development.
+    """
+    builder = PartialDockerBuilder()
+
+    # Install Rust using rustup (non-interactive)
+    builder.run("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
+
+    # Set environment variable to include Rust's cargo bin directory in PATH
+    builder.env(name="PATH", value="/home/${USER_NAME}/.cargo/bin:$PATH")
+
+    # Check Rust version
+    builder.run(command="cargo --version")
+
+    # Add rustfmt if requested
+    if install_rustfmt:
+        builder.run(command="rustup component add rustfmt")
+
+    # Add clippy if requested
+    if install_clippy:
+        builder.run(command="rustup component add clippy")
+
+    # Install cargo-edit if requested
+    if install_cargo_edit:
+        builder.run(command="cargo install cargo-edit")
+
+    # Install cargo-watch if requested
+    if install_cargo_watch:
+        builder.run(command="cargo install cargo-watch")
+
+    return builder
