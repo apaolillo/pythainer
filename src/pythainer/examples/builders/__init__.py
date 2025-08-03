@@ -282,6 +282,7 @@ def rust_builder(
         PartialDockerBuilder: Docker builder configured for Rust development.
     """
     builder = PartialDockerBuilder()
+    builder.user()
 
     # Install Rust using rustup (non-interactive)
     builder.run("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
