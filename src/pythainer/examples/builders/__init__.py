@@ -312,6 +312,45 @@ def rust_builder(
     return builder
 
 
+def qemu_dependencies() -> List[str]:
+    qemu_packages = [
+        "acpica-tools",
+        "libglib2.0-dev",
+        "libpixman-1-dev",
+        "pkg-config",
+        "python3",
+        "python3-dev",
+        "python3-pip",
+        "python3-sphinx",
+        "python3-sphinx-rtd-theme",
+        "python3-venv",
+        "sparse",
+        "build-essential",
+        "meson",
+        "ninja-build",
+        "pkg-config",
+        "diffutils",
+        "python3",
+        "python3-venv",
+        "libglib2.0-dev",
+        "libusb-1.0-0-dev",
+        "libncursesw5-dev",
+        "libpixman-1-dev",
+        "libepoxy-dev",
+        "libv4l-dev",
+        "libpng-dev",
+        "libsdl2-dev",
+        "libsdl2-image-dev",
+        "libgtk-3-dev",
+        "libgdk-pixbuf2.0-dev",
+        "libasound2-dev",
+        "libpulse-dev",
+        "libx11-dev",
+    ]
+
+    return qemu_packages
+
+
 def qemu_builder(
     version: str = "10.0.2",
     targets: Iterable[str] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
