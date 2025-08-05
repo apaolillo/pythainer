@@ -9,7 +9,6 @@ or user requirements, such as GUI support, camera access, GPU usage, and persona
 import os
 import shlex
 from pathlib import Path
-from turtle import dot
 
 from pythainer.runners import DockerRunner
 
@@ -18,7 +17,6 @@ def gui_runner(mount_input_events: bool = True) -> DockerRunner:
     """
     Configures a Docker runner to enable GUI applications by setting up necessary environment
     variables and volumes.
-pip install basedpyright
     Parameters:
         mount_input_events (bool): If True, mounts all input event devices to the container.
                                    Defaults to True.
@@ -106,10 +104,11 @@ def personal_runner(user_name: str = "user", preserve_history: bool = False) -> 
     vimrc = Path("~/git/machines-config/dotfiles/vimrc").expanduser()
     tmuxconf = Path("~/git/machines-config/dotfiles/tmux.conf").expanduser()
     
-    volumes={
-        f"{vimrc}": f"/home/{user_name}/.vimrc",
-        f"{tmuxconf}": f"/home/{user_name}/.tmux.conf",
-    }
+    volumes = {} 
+    if vimrc.exists():
+        volumes[vimrc] = f"/home/{user_name}/.vimrc"
+    if tmuxconf.exists():
+        volumes[tmuxconf] = f"/home/{user_name}/.tmuxconf"
 
     dotfiles = [Path("~/dotfiles/").expanduser()]
     
@@ -120,22 +119,21 @@ def personal_runner(user_name: str = "user", preserve_history: bool = False) -> 
     # mounted as volumes in the container. The histories of command are saved between
     # execution of the container
     if preserve_history:
-        histories = [Path("./.pythainer_history.bash"), Path("./.pythainer_history.zsh")]
+        histories = [Path("./.pythainer/history.bash"), Path("./.pythainer/history.zsh")]
         for history in histories: 
+            history.parent.mkdir(parents=True, exist_ok=True)
             if not history.exists():
-                with open(history, 'w') as file:
-                    file.write("")
-            shell_type = history.name.split(".")[-1]
+                history.write_text("")
+            shell_type = history.suffix.lstrip('.')
             volumes[f"{history}"] = f"/home/{user_name}/.{shell_type}_history"
     
     for dotfile in dotfiles:
-        if dotfile.exists():
-            if dotfile.is_dir():
-                for f in dotfile.iterdir():
-                    if f.is_dir():
-                        volumes[f"{f.absolute()}"] = f"/home/{user_name}/.config/{f.name}"
-            else:
-                volumes[f"{dotfile.absolute()}"] = f"/home/{user_name}/{dotfile.name}"
+        if dotfile.is_dir():
+            for f in dotfile.iterdir():
+                if f.is_dir():
+                    volumes[f"{f.absolute()}"] = f"/home/{user_name}/.config/{f.name}"
+        else:
+            volumes[f"{dotfile.absolute()}"] = f"/home/{user_name}/{dotfile.name}"
 
     return DockerRunner(
         environment_variables={},
