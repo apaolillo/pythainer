@@ -17,7 +17,6 @@ def gui_runner(mount_input_events: bool = True) -> DockerRunner:
     """
     Configures a Docker runner to enable GUI applications by setting up necessary environment
     variables and volumes.
-
     Parameters:
         mount_input_events (bool): If True, mounts all input event devices to the container.
                                    Defaults to True.
@@ -89,7 +88,7 @@ def gpu_runner() -> DockerRunner:
     )
 
 
-def personal_runner(user_name: str = "user") -> DockerRunner:
+def personal_runner(user_name: str = "user", preserve_history: bool = False) -> DockerRunner:
     """
     Sets up a Docker runner with personal configuration files for vim and tmux from a given user's
     repository.
@@ -101,15 +100,43 @@ def personal_runner(user_name: str = "user") -> DockerRunner:
     Returns:
         DockerRunner: A DockerRunner configured with personal environment settings.
     """
-
+     
     vimrc = Path("~/git/machines-config/dotfiles/vimrc").expanduser()
     tmuxconf = Path("~/git/machines-config/dotfiles/tmux.conf").expanduser()
+    
+    volumes = {} 
+    if vimrc.exists():
+        volumes[vimrc] = f"/home/{user_name}/.vimrc"
+    if tmuxconf.exists():
+        volumes[tmuxconf] = f"/home/{user_name}/.tmuxconf"
+
+    dotfiles = [Path("~/dotfiles/").expanduser()]
+    
+    dotfiles.append(Path("~/.bashrc").expanduser())
+    dotfiles.append(Path("~/.zshrc").expanduser())
+    
+    # Create history files for shells (currently supporting bash and zsh) that are
+    # mounted as volumes in the container. The histories of command are saved between
+    # execution of the container
+    if preserve_history:
+        histories = [Path("./.pythainer/history.bash"), Path("./.pythainer/history.zsh")]
+        for history in histories: 
+            history.parent.mkdir(parents=True, exist_ok=True)
+            if not history.exists():
+                history.write_text("")
+            shell_type = history.suffix.lstrip('.')
+            volumes[f"{history}"] = f"/home/{user_name}/.{shell_type}_history"
+    
+    for dotfile in dotfiles:
+        if dotfile.is_dir():
+            for f in dotfile.iterdir():
+                if f.is_dir():
+                    volumes[f"{f.absolute()}"] = f"/home/{user_name}/.config/{f.name}"
+        else:
+            volumes[f"{dotfile.absolute()}"] = f"/home/{user_name}/{dotfile.name}"
 
     return DockerRunner(
         environment_variables={},
-        volumes={
-            f"{vimrc}": f"/home/{user_name}/.vimrc",
-            f"{tmuxconf}": f"/home/{user_name}/.tmux.conf",
-        },
+        volumes=volumes,
         devices=[],
     )
