@@ -24,13 +24,13 @@ venv_dir=$(readlink -f "${pythainer_root_dir}/venv")
   ./scripts/list_missing_copyright.sh
 
   echo "-- running pylint. --"
-  ${pylint} src/ || true
+  ${pylint} src/ tests/ || true
 
   echo "-- running flake8. --"
-  ${flake8} src/ || true
+  ${flake8} src/ tests/ || true
 
   echo "-- running isort. --"
-  ${isort} --profile=black src/
+  ${isort} --profile=black src/ tests/
 
   echo "-- running black. --"
   ${black} -l 100 .

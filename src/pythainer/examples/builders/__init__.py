@@ -376,8 +376,17 @@ def qemu_builder(
         f'./configure --target-list="{target_list}" --disable-xen --enable-sdl --enable-gtk',
         "make -j$(nproc)",
         "sudo make install",
-    ] + ([f"rm -f {stemname}"] if cleanup else [])
+    ]
+
+    if cleanup:
+        commands.extend(
+            [
+                "cd ..",
+                f"rm -r {stemname}",
+            ]
+        )
 
     builder.run_multiple(commands=commands)
+    builder.workdir(path="..")
 
     return builder
