@@ -78,6 +78,19 @@ class PartialDockerBuilder:
         result_builder._extend(other=other)
         return result_builder
 
+    def __ior__(self, other: "PartialDockerBuilder") -> "PartialDockerBuilder":
+        """
+        In-place merge of another PartialDockerBuilder into this one.
+
+        Parameters:
+            other (PartialDockerBuilder): The other builder to merge into this one.
+
+        Returns:
+            PartialDockerBuilder: The current builder with commands from the other merged in.
+        """
+        self._extend(other=other)
+        return self
+
     def _extend(self, other: "PartialDockerBuilder") -> None:
         """
         Extends the current builder's commands with those from another builder.
