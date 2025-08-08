@@ -24,7 +24,7 @@ jobs:
       run: |
         python3 --version
         black --version
-        isort --version
+        echo "isort $(isort --version-number)"
         flake8 --version
         pylint --version
 
@@ -40,10 +40,9 @@ jobs:
       run: |
         flake8 src/ tests/
 
-    # Keep pylint non-blocking like tbe local script (remove "|| true" to make it strict)
-    - name: Run pylint (non-blocking)
+    - name: Run pylint
       run: |
-        pylint src/ tests/ || true
+        pylint src/ tests/
 
     - name: Check copyright
       run: |
