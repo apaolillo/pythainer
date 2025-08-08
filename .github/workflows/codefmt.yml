@@ -1,0 +1,56 @@
+name: pythainer code formatting
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  format-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install formatting/linting tools (pinned to local freeze)
+      run: |
+        python3 -m pip install --upgrade pip
+        pip3 install \
+          black==25.1.0 \
+          isort==6.0.1 \
+          flake8==7.3.0 \
+          pylint==3.3.7
+
+    - name: Show versions of tools
+      run: |
+        python3 --version
+        black --version
+        isort --version
+        flake8 --version
+        pylint --version
+
+    - name: Run isort (check only)
+      run: |
+        isort --check-only --profile=black src/ tests/ scripts/
+
+    - name: Run Black (check only)
+      run: |
+        black -l 100 --check .
+
+    - name: Run Flake8
+      run: |
+        flake8 src/ tests/
+
+    # Keep pylint non-blocking like tbe local script (remove "|| true" to make it strict)
+    - name: Run pylint (non-blocking)
+      run: |
+        pylint src/ tests/ || true
+
+    - name: Check copyright
+      run: |
+        chmod +x scripts/list_missing_copyright.sh
+        ./scripts/list_missing_copyright.sh
