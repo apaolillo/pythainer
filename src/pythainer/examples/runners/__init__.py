@@ -121,7 +121,7 @@ def personal_runner(
             Defaults to False.
 
     Returns:
-        DockerRunner: Runner instance configured with the specified mounts and environment variables.
+        DockerRunner: Runner instance configured with the specified mounts.
     """
 
     vimrc = Path("~/git/machines-config/dotfiles/vimrc").expanduser()
@@ -144,11 +144,15 @@ def personal_runner(
             shell_type = history.suffix.lstrip(".")
             volumes[history] = f"/home/{user_name}/.{shell_type}_history"
 
-    dotfiles = [
-        Path("~/dotfiles").expanduser(),
-        Path("~/.bashrc").expanduser(),
-        Path("~/.zshrc").expanduser(),
-    ] if use_host_rc else []
+    dotfiles = (
+        [
+            Path("~/dotfiles").expanduser(),
+            Path("~/.bashrc").expanduser(),
+            Path("~/.zshrc").expanduser(),
+        ]
+        if use_host_rc
+        else []
+    )
     for dotfile in dotfiles:
         if dotfile.is_dir():
             for f in dotfile.iterdir():
@@ -157,7 +161,11 @@ def personal_runner(
         else:
             volumes[dotfile.resolve()] = f"/home/{user_name}/{dotfile.name}"
 
-    volumes = {str(host_path): docker_path for host_path, docker_path in volumes.items() if host_path.is_file()}
+    volumes = {
+        str(host_path): docker_path
+        for host_path, docker_path in volumes.items()
+        if host_path.is_file()
+    }
 
     return DockerRunner(
         environment_variables={},
