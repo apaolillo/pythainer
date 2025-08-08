@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies from requirements.txt
       run: |
         python3 -m pip install --upgrade pip
-        pip3 install -r requirements.txt
+        pip3 install $(grep -E '^(black|isort|flake8|pylint)' requirements.txt)
 
     - name: Show versions of tools
       run: |
