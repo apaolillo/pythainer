@@ -589,6 +589,7 @@ class DockerfileDockerBuilder(DockerBuilder):
     ) -> None:
         raise NotImplementedError()
 
+    # pylint: disable=arguments-differ
     def build(self, dockerfile_savepath: PathType = "") -> None:
         if dockerfile_savepath:
             raise NotImplementedError()

@@ -1,0 +1,50 @@
+name: pythainer code formatting
+
+on:
+  push:
+
+jobs:
+  format-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies from requirements.txt
+      run: |
+        python3 -m pip install --upgrade pip
+        pip3 install $(grep -E '^(black|isort|flake8|pylint)' requirements.txt)
+
+    - name: Show versions of tools
+      run: |
+        python3 --version
+        black --version
+        echo "isort $(isort --version-number)"
+        flake8 --version
+        pylint --version
+
+    - name: Run isort (check only)
+      run: |
+        isort --check-only --profile=black src/ tests/ scripts/
+
+    - name: Run Black (check only)
+      run: |
+        black -l 100 --check .
+
+    - name: Run Flake8
+      run: |
+        flake8 src/ tests/
+
+    - name: Run pylint
+      run: |
+        pylint src/ tests/
+
+    - name: Check copyright
+      run: |
+        chmod +x scripts/list_missing_copyright.sh
+        ./scripts/list_missing_copyright.sh

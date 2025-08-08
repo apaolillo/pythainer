@@ -13,7 +13,6 @@ pip_exec=$(echo "${pip_execs}" | head -n 1)
 ${pip_exec} install --upgrade pip
 ${pip_exec} install --upgrade setuptools
 ${pip_exec} install --upgrade wheel
-${pip_exec} install --upgrade pycodestyle isort pylint black black[d] black[jupyter] flake8 docopt
 
 requirement_file="requirements.txt"
 if [ -e "${requirement_file}" ]

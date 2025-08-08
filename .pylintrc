@@ -7,5 +7,6 @@ ignore-paths=
 disable=
     too-many-instance-attributes,
     too-many-arguments,
+    too-many-positional-arguments,
     too-few-public-methods,
     unspecified-encoding,
