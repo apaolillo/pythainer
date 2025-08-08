@@ -15,14 +15,10 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install formatting/linting tools (pinned to local freeze)
+    - name: Install dependencies from requirements.txt
       run: |
         python3 -m pip install --upgrade pip
-        pip3 install \
-          black==25.1.0 \
-          isort==6.0.1 \
-          flake8==7.3.0 \
-          pylint==3.3.7
+        pip3 install -r requirements.txt
 
     - name: Show versions of tools
       run: |
