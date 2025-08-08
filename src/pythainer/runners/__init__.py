@@ -189,7 +189,6 @@ class ConcreteDockerRunner(DockerRunner):
         vol = [f"--volume={k}:{v}" for k, v in self._volumes.items()]
         dev = [f"--device={d}" for d in self._devices if Path(d).exists()]
         opt = [f"{o}" for o in self._other_options]
-        # TODO gpus
         name = [f"--name={self._name}"] if self._name else []
         host = [f"--hostname={image}"]
         net = (

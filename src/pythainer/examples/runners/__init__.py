@@ -100,33 +100,33 @@ def personal_runner(user_name: str = "user", preserve_history: bool = False) -> 
     Returns:
         DockerRunner: A DockerRunner configured with personal environment settings.
     """
-     
+
     vimrc = Path("~/git/machines-config/dotfiles/vimrc").expanduser()
     tmuxconf = Path("~/git/machines-config/dotfiles/tmux.conf").expanduser()
-    
-    volumes = {} 
+
+    volumes = {}
     if vimrc.exists():
         volumes[vimrc] = f"/home/{user_name}/.vimrc"
     if tmuxconf.exists():
         volumes[tmuxconf] = f"/home/{user_name}/.tmuxconf"
 
     dotfiles = [Path("~/dotfiles/").expanduser()]
-    
+
     dotfiles.append(Path("~/.bashrc").expanduser())
     dotfiles.append(Path("~/.zshrc").expanduser())
-    
+
     # Create history files for shells (currently supporting bash and zsh) that are
     # mounted as volumes in the container. The histories of command are saved between
-    # execution of the container
+    # execution of the container.
     if preserve_history:
         histories = [Path("./.pythainer/history.bash"), Path("./.pythainer/history.zsh")]
-        for history in histories: 
+        for history in histories:
             history.parent.mkdir(parents=True, exist_ok=True)
             if not history.exists():
                 history.write_text("")
-            shell_type = history.suffix.lstrip('.')
+            shell_type = history.suffix.lstrip(".")
             volumes[f"{history}"] = f"/home/{user_name}/.{shell_type}_history"
-    
+
     for dotfile in dotfiles:
         if dotfile.is_dir():
             for f in dotfile.iterdir():

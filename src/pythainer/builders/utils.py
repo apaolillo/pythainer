@@ -158,7 +158,6 @@ def project_cmake_build_install(
         cleanup (bool): Whether to clean up build artifacts and temporary files after installation.
                         Defaults to True.
     """
-    project_path = Path(workdir) / repo_name
     cmake_src_dir = cmake_src_dir if cmake_src_dir else ".."
 
     if generator or cmake_options:
@@ -189,7 +188,7 @@ def project_cmake_build_install(
     if install:
         commands.append(f"sudo {generator_command} install")
     commands += _project_cleanup_commands(
-        path=project_path,
+        path=Path(workdir) / repo_name,
         cleanup=cleanup,
     )
 

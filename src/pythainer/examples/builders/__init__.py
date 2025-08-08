@@ -313,6 +313,15 @@ def rust_builder(
 
 
 def qemu_dependencies() -> List[str]:
+    """
+    Return the list of Ubuntu packages required to build QEMU from source.
+
+    These cover build tools (make, ninja), Python/sphinx for docs, GLib/pixman
+    for QEMU’s build/runtime, and optional GUI/audio backends (SDL2, GTK, ALSA, PulseAudio).
+
+    Returns:
+        List[str]: Package names to be installed prior to building QEMU.
+    """
     qemu_packages = [
         "acpica-tools",
         "libglib2.0-dev",
@@ -356,6 +365,21 @@ def qemu_builder(
     targets: Iterable[str] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
     cleanup: bool = False,
 ) -> PartialDockerBuilder:
+    """
+    Create build steps to download, compile, and install QEMU from source.
+
+    Parameters:
+        version (str):
+            QEMU version to fetch from https://download.qemu.org (e.g., "10.0.2").
+        targets (Iterable[str]):
+            QEMU target list passed to `--target-list` during configure.
+            Examples include "aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu".
+        cleanup (bool):
+            If True, remove the extracted source directory after installation.
+
+    Returns:
+        PartialDockerBuilder: A builder that, when composed/applied, installs QEMU in the image.
+    """
     stemname = f"qemu-{version}"
     tarname = f"{stemname}.tar.xz"
     download_url = f"https://download.qemu.org/{tarname}"
