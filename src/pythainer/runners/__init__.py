@@ -234,7 +234,7 @@ class ConcreteDockerRunner(DockerRunner):
         Executes the constructed Docker command.
 
         Parameters:
-            commands (list[str]): The commands to run before entering 
+            commands (list[str]): The commands to run before entering
                                   into the docker in interactive mode
         """
         command = self.get_command()
