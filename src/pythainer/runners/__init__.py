@@ -7,6 +7,7 @@ Docker containers with specific configurations, such as environmental variables,
 device access, and other Docker options.
 """
 
+from os import wait
 from pathlib import Path
 from typing import Dict, List
 
@@ -229,13 +230,20 @@ class ConcreteDockerRunner(DockerRunner):
         result = " ".join(cmd)
         return result
 
-    def run(self) -> None:
+    def run(self, commands:list[str]=[]) -> None:
         """
         Executes the constructed Docker command.
+
+        Parameters:
+            commands (list[str]): The commands to run before entering into the docker in interactive mode 
         """
         command = self.get_command()
         if "$@" == command[-1]:
             command = command[:-1]
+        if commands is not []:
+            commands_serial = " && ".join(commands)
+            commands_serial = ["bash", "-c", commands_serial]
+            command.extend(commands_serial)
         shell_out(
             command=command,
             output_is_log=True,
