@@ -7,7 +7,6 @@ Docker containers with specific configurations, such as environmental variables,
 device access, and other Docker options.
 """
 
-from os import wait
 from pathlib import Path
 from typing import Dict, List
 
