@@ -10,6 +10,18 @@ using the `pythainer` framework. It provides:
     - A partial builder for building and installing LLVM with MLIR enabled.
     - A full Ubuntu-based builder with a non-root user and LLVM installed.
     - A helper to build and run the container with a personal runner setup.
+
+Example usage:
+- Create add.mlir file:
+module {
+  llvm.func @main() -> i32 {
+    %a = llvm.mlir.constant(10 : i32) : i32
+    %b = llvm.mlir.constant(20 : i32) : i32
+    %sum = llvm.add %a, %b : i32
+    llvm.return %sum : i32
+  }
+}
+- Translate it into LLVM with `mlir-translate --mlir-to-llvmir add.mlir -o add.ll`
 """
 
 from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder
@@ -49,13 +61,17 @@ def llvm_builder(work_dir: str) -> PartialDockerBuilder:
         install=False,
         cleanup=False,
     )
+    docker_builder.env(
+        name="PATH",
+        value="$PATH:/home/${USER_NAME}/workspace/libraries/llvm-project/build/bin",
+    )
 
     return docker_builder
 
 
 def get_builder(
     image_name: str = "tonymlir",
-    base_image: str = "ubuntu:22.04",
+    base_image: str = "ubuntu:24.04",
 ) -> UbuntuDockerBuilder:
     """
     Create an Ubuntu-based Docker builder with a non-root user and LLVM+MLIR installed.
