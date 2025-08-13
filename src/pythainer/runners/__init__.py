@@ -240,7 +240,7 @@ class ConcreteDockerRunner(DockerRunner):
         command = self.get_command()
         if "$@" == command[-1]:
             command = command[:-1]
-        if commands != []:
+        if commands:
             commands_serial = " && ".join(commands)
             commands_serial = ["bash", "-c", commands_serial]
             command.extend(commands_serial)
