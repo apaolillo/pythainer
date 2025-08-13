@@ -229,7 +229,7 @@ class ConcreteDockerRunner(DockerRunner):
         result = " ".join(cmd)
         return result
 
-    def run(self, commands: list[str] = None) -> None:
+    def run(self, commands: list[str] | None = None,) -> None:
         """
         Executes the constructed Docker command.
 
