@@ -82,7 +82,7 @@ def get_builder(
             Defaults to "tonymlir".
         base_image (str, optional):
             Base Ubuntu image tag.
-            Defaults to "ubuntu:22.04".
+            Defaults to "ubuntu:24.04".
 
     Returns:
         UbuntuDockerBuilder: Fully configured Docker builder with LLVM+MLIR installed.
