@@ -164,7 +164,7 @@ def personal_runner(
     volumes = {
         str(host_path): docker_path
         for host_path, docker_path in volumes.items()
-        if host_path.is_file()
+        if host_path.exists()
     }
 
     return DockerRunner(
