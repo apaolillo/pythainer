@@ -70,7 +70,7 @@ def llvm_builder(work_dir: str) -> PartialDockerBuilder:
 
 
 def get_builder(
-    image_name: str = "tonymlir",
+    image_name: str = "mlir",
     base_image: str = "ubuntu:24.04",
 ) -> UbuntuDockerBuilder:
     """
