@@ -267,7 +267,7 @@ def rust_builder(
     install_clippy: bool = True,
     install_cargo_edit: bool = True,
     install_cargo_watch: bool = False,
-    install_nightly: bool = False
+    install_nightly: bool = False,
 ) -> PartialDockerBuilder:
     """
     Sets up a Docker builder for Rust development by installing Rust via rustup
@@ -287,8 +287,10 @@ def rust_builder(
 
     # Install Rust using rustup (non-interactive)
     if install_nightly:
-        builder.run(f"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
-                      --default-toolchain nightly -y")
+        builder.run(
+            f"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
+                      --default-toolchain nightly -y"
+        )
     else:
         builder.run(f"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
 
