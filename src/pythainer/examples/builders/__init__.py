@@ -288,11 +288,11 @@ def rust_builder(
     # Install Rust using rustup (non-interactive)
     if install_nightly:
         builder.run(
-            f"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
+            "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
                       --default-toolchain nightly -y"
         )
     else:
-        builder.run(f"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
+        builder.run("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
 
     # Set environment variable to include Rust's cargo bin directory in PATH
     builder.env(name="PATH", value="/home/${USER_NAME}/.cargo/bin:$PATH")
