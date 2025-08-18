@@ -289,8 +289,7 @@ def rust_builder(
     # Install Rust using rustup (non-interactive)
     cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
     if install_nightly:
-        cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
-                      --default-toolchain nightly -y"
+        cmd += " --default-toolchain nightly"
     builder.run(cmd)
 
     # Set environment variable to include Rust's cargo bin directory in PATH
