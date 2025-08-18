@@ -278,7 +278,7 @@ def rust_builder(
         install_clippy (bool): Whether to install the clippy linter.
         install_cargo_edit (bool): Whether to install cargo-edit (adds `cargo add`, etc.).
         install_cargo_watch (bool): Whether to install cargo-watch for file change detection.
-        install_nightly (bool): Wheter to install the nightly version of rust or not.
+        install_nightly (bool): Whether to install the nightly version of rust or not.
 
     Returns:
         PartialDockerBuilder: Docker builder configured for Rust development.
