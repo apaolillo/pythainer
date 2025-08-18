@@ -278,6 +278,7 @@ def rust_builder(
         install_clippy (bool): Whether to install the clippy linter.
         install_cargo_edit (bool): Whether to install cargo-edit (adds `cargo add`, etc.).
         install_cargo_watch (bool): Whether to install cargo-watch for file change detection.
+        install_nightly (bool): Wheter to install the nightly version of rust or not.
 
     Returns:
         PartialDockerBuilder: Docker builder configured for Rust development.
@@ -286,13 +287,11 @@ def rust_builder(
     builder.user()
 
     # Install Rust using rustup (non-interactive)
+    cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
     if install_nightly:
-        builder.run(
-            "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
+        cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
                       --default-toolchain nightly -y"
-        )
-    else:
-        builder.run("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
+    builder.run(cmd)
 
     # Set environment variable to include Rust's cargo bin directory in PATH
     builder.env(name="PATH", value="/home/${USER_NAME}/.cargo/bin:$PATH")
