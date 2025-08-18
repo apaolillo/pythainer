@@ -146,7 +146,7 @@ def personal_runner(
 
     dotfiles = (
         [
-            Path("~/dotfiles").expanduser(),
+            Path("~/dotfiles/").expanduser(),
             Path("~/.bashrc").expanduser(),
             Path("~/.zshrc").expanduser(),
         ]
