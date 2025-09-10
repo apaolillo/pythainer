@@ -88,6 +88,7 @@ class CopyDockerBuildCommand(DockerBuildCommand):
         self._source_path = source_path
         self._destination_path = destination_path
 
+    # pylint: disable=arguments-differ
     def get_str_for_dockerfile(
         self,
         docker_file_Path: Path,
@@ -100,8 +101,6 @@ class CopyDockerBuildCommand(DockerBuildCommand):
         Returns:
             str: The command string.
         """
-
-        # TODO: is mkdir needed and if so where?
 
         if os.path.isfile(self._source_path):
             shutil.copyfile(self._source_path, docker_file_Path / self._source_path)
