@@ -7,7 +7,7 @@ environments using Docker, including setups for GUI applications, OpenCL, Vulkan
 projects like CLSPV.
 """
 
-from typing import Iterable, List
+from typing import List, Tuple
 
 from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder
 from pythainer.builders.utils import cmake_build_install
@@ -367,7 +367,9 @@ def qemu_dependencies() -> List[str]:
 
 def qemu_builder(
     version: str = "10.0.2",
-    targets: Iterable[str] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
+    targets: Tuple[str] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
+    disables: Tuple[str] = ("xen",),
+    enables: Tuple[str] = ("sdl", "gtk", "slirp"),
     cleanup: bool = False,
 ) -> PartialDockerBuilder:
     """
@@ -379,6 +381,10 @@ def qemu_builder(
         targets (Iterable[str]):
             QEMU target list passed to `--target-list` during configure.
             Examples include "aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu".
+        disables (Tuple[str]):
+            QEMU disable list passed to `--disable-xxx` during configure.
+        enables (Tuple[str]):
+            QEMU enable list passed to `--enable-xxx` during configure.
         cleanup (bool):
             If True, remove the extracted source directory after installation.
 
@@ -401,8 +407,10 @@ def qemu_builder(
     builder.workdir(path=stemname)
 
     target_list = ",".join(targets)
+    disables_str = " ".join(f"--disable-{d}" for d in disables)
+    enables_str = " ".join(f"--enable-{e}" for e in enables)
     commands = [
-        f'./configure --target-list="{target_list}" --disable-xen --enable-sdl --enable-gtk',
+        f'./configure --target-list="{target_list}" {disables_str} {enables_str}',
         "make -j$(nproc)",
         "sudo make install",
     ]
