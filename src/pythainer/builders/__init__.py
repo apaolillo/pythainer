@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from pythainer.builders.cmds import (
     AddPkgDockerBuildCommand,
+    CopyDockerBuildCommand,
     DockerBuildCommand,
     StrDockerBuildCommand,
 )
@@ -29,6 +30,7 @@ from pythainer.sysutils import (
 
 def _generate_dockerfile_content(
     package_manager: str,
+    docker_file_Path: Path,
     commands: List[DockerBuildCommand],
 ) -> str:
     """
@@ -44,7 +46,7 @@ def _generate_dockerfile_content(
         str: The generated Dockerfile content as a string.
     """
     joined_lines = "\n".join(
-        c.get_str_for_dockerfile(pkg_manager=package_manager) for c in commands
+        c.get_str_for_dockerfile(pkg_manager=package_manager,docker_file_Path=docker_file_Path) for c in commands
     )
     file_content = joined_lines.strip() + "\n"
     return file_content
@@ -220,7 +222,7 @@ class PartialDockerBuilder:
         """
         self._build_commands.append(AddPkgDockerBuildCommand(packages=packages))
 
-    def copy(self, filename: PathType, destination: PathType) -> None:
+    def copy(self, file_path: PathType, destination_path: PathType) -> None:
         """
         Copies a file to the docker container
 
@@ -228,8 +230,7 @@ class PartialDockerBuilder:
             filename (PathType): The file to copy to the container.
             destination (PathType): The location to place the file within the Docker container.
         """
-        cmd = f"COPY {filename} {destination}"
-        self._build_commands.append(StrDockerBuildCommand(cmd))
+        self._build_commands.append(CopyDockerBuildCommand(file_path,destination_path))
 
 
 class DockerBuilder(PartialDockerBuilder):
@@ -257,6 +258,7 @@ class DockerBuilder(PartialDockerBuilder):
         """
         super().__init__()
         self._tag = tag
+        self._container_dir = Path(f"/tmp/pythainer/docker/{self._tag}/")
         self._package_manager = package_manager
         self._use_buildkit = use_buildkit
 
@@ -270,6 +272,7 @@ class DockerBuilder(PartialDockerBuilder):
         """
         dockerfile_content = _generate_dockerfile_content(
             package_manager=self._package_manager,
+            docker_file_Path = self._container_dir,
             commands=self._build_commands,
         )
 
@@ -389,34 +392,29 @@ class DockerBuilder(PartialDockerBuilder):
         Parameters:
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
         """
-        main_dir = Path("/tmp/pythainer/docker/")
-        mkdir(main_dir)
-        with tempfile.TemporaryDirectory(
-            prefix="/tmp/pythainer/docker/docker-build-",
-            dir=main_dir,
-        ) as temp_dir:
-            temp_path = Path(temp_dir)
-            dockerfile_path = (temp_path / "Dockerfile").resolve()
-            dockerfile_paths = [dockerfile_path] + (
-                [dockerfile_savepath] if dockerfile_savepath else []
-            )
-            self.generate_dockerfile(dockerfile_paths=dockerfile_paths)
 
-            command = self.get_build_commands(
-                dockerfile_path=dockerfile_path,
-                docker_build_dir=Path(docker_context).resolve() if docker_context else temp_path,
-                uid=get_uid(),
-                gid=get_gid(),
-            )
+        mkdir(self._container_dir)
+        dockerfile_path = (self._container_dir / "Dockerfile").resolve()
+        dockerfile_paths = [dockerfile_path] + (
+            [dockerfile_savepath] if dockerfile_savepath else []
+        )
+        self.generate_dockerfile(dockerfile_paths=dockerfile_paths)
 
-            environment = self.get_build_environment()
+        command = self.get_build_commands(
+            dockerfile_path=dockerfile_path,
+            docker_build_dir=Path(docker_context).resolve() if docker_context else self._container_dir,
+            uid=get_uid(),
+            gid=get_gid(),
+        )
 
-            shell_out(
-                command=command,
-                current_dir=temp_path,
-                environment=environment,
-                output_is_log=True,
-            )
+        environment = self.get_build_environment()
+
+        shell_out(
+            command=command,
+            current_dir=self._container_dir,
+            environment=environment,
+            output_is_log=True,
+        )
 
     def get_runner(
         self,
