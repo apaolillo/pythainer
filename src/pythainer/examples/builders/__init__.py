@@ -242,17 +242,20 @@ def vulkan_builder() -> PartialDockerBuilder:
     return builder
 
 
-def vTune_builder() -> PartialDockerBuilder:
+def vTune_builder(
+        lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
+) -> PartialDockerBuilder:
     """
-    Configures a Docker builder for Vtune development, preparing the environment
-    and installing necessary Vtune packages.
+    Configures a Docker builder for Vtune development.
+    Installs necessary Vtune packages.
+    and prepares the environment variables
 
     Since Vtune in reality is still profiling the host system you need will need
     to make changes to the host system to get full functionality of Vtune on the docker container.
-    
-    One such is:
+
+    One such can be:
     Run "echo "0" | sudo tee /proc/sys/kernel/yama/ptrace_scope > /dev/null" on host
-        -> WARNING donig this comes with securety concerns (https://www.kernel.org/doc/Documentation/security/Yama.txt)
+        WARNING doing this comes with security concerns (https://www.kernel.org/doc/Documentation/security/Yama.txt)
 
     Returns:
         PartialDockerBuilder: A Docker builder ready to use the intel Vtune profiler.
@@ -270,13 +273,13 @@ def vTune_builder() -> PartialDockerBuilder:
             "libgtk-3-dev",
             "libxss-dev",
             "libasound2",
-            "xdg-utils", #TODO: this is to view documentation but this seems to not be enough   
+            "xdg-utils", #TODO: this is to view documentation but this seems to not be enough
             "kmod"
         ]
     )
 
     builder.user()
-    builder.workdir(path="/tmp")
+    builder.workdir(path=lib_dir)
     builder.run_multiple([
             'wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
             'sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
