@@ -7,7 +7,9 @@ environments using Docker, including setups for GUI applications, OpenCL, Vulkan
 projects like CLSPV.
 """
 
-from typing import Iterable, List
+import os
+from pathlib import Path
+from typing import Iterable, List, Optional
 
 from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder
 from pythainer.builders.utils import cmake_build_install
@@ -418,4 +420,57 @@ def qemu_builder(
     builder.run_multiple(commands=commands)
     builder.workdir(path="..")
 
+    return builder
+
+def pyvenv_builder(
+    requirements_file_path:Optional[Path] = None,
+    dependency_folders:Optional[List[Path]] = None,
+    single_packages: Optional[List[str]] = None,
+    lib_dir:Path = Path("/home/${USER_NAME}/workspace/libraries")
+) -> PartialDockerBuilder:
+
+    """
+    Create a python virtual environment given the specified parameters
+
+    Parameters:
+        requirements_file_path (Optional[Path] = None):
+            Path to a file structured like a requirements.txt
+        dependency_folders (Optional[List[Path]] = None):
+            A list of paths that point towards folders with their own
+            setup.py or pyproject.toml file, to be added to the venv
+        single_packages:
+            A list of names of packages such as
+            "numpy" or "matplotlib" to be added to the venv.
+        lib_dir:
+            lib_dir (Path): Directory for libraries and tools.
+
+    Returns:
+        PartialDockerBuilder: A builder that, when composed/applied, creates a venv in the container.
+    """
+
+    venv_dir = lib_dir / "./python_venv/"
+    builder = PartialDockerBuilder()
+
+    builder.desc("install the python cvenv")
+    builder.user()
+    builder.run("mkdir {lib_dir}")
+    builder.workdir(venv_dir)
+
+    builder.run("python3 -m venv .cvenv")
+    builder.run("./.cvenv/bin/python3 -m pip install --upgrade setuptools pip")
+
+    if single_packages:
+        packagelist = " ".join(single_packages)
+        builder.run(f"./.cvenv/bin/python3 -m pip install --upgrade {packagelist}")
+
+    if requirements_file_path:
+        builder.copy(requirements_file_path, venv_dir / "./requirements_file/requirements.txt")
+        builder.run(f"./.cvenv/bin/python3 -m pip install -r {venv_dir / "./requirements_file/requirements.txt"}")
+
+    if dependency_folders:
+        for path in dependency_folders:
+            builder.copy(path,venv_dir / f"./dependencies/{os.path.basename(os.path.normpath(path))}")
+            builder.run(f"./.cvenv/bin/python3 -m pip install -e ./dependencies/{os.path.basename(os.path.normpath(path))}/")
+
+    builder.env(name="PATH", value=f"$PATH:{venv_dir / ".cvenv/bin/"}")
     return builder
