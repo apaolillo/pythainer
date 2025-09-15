@@ -12,10 +12,16 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "click>=8.2.1"
+]
 
 [project.urls]
 Homepage = "https://github.com/apaolillo/pythainer"
 Issues = "https://github.com/apaolillo/pythainer/issues"
+
+[project.scripts]
+pythainer = "pythainer.cli:main"
 
 [build-system]
 requires = ["hatchling"]

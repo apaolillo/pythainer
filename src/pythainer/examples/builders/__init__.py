@@ -396,6 +396,11 @@ def qemu_builder(
     download_url = f"https://download.qemu.org/{tarname}"
 
     builder = PartialDockerBuilder()
+
+    builder.root()
+    builder.add_packages(packages=qemu_dependencies())
+    builder.user()
+
     builder.run_multiple(
         commands=[
             f"wget -q {download_url}",
