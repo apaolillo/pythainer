@@ -7,3 +7,5 @@ isort<=6.0.1
 pycodestyle<=2.14.0
 pylint<=3.3.7
 pytest<=8.4.2
+ruff<=0.13.0
+mypy<=1.18.1
