@@ -1,0 +1,72 @@
+name: pythainer tests
+
+on:
+  push:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            pip-${{ runner.os }}-${{ matrix.python-version }}-
+
+      - name: Install package + test deps
+        run: |
+          python -m pip install --upgrade pip
+          # if you defined extras in pyproject:
+          pip install -e .
+          pip install -e ".[test]"
+          # fallback (if no extras):
+          # pip install pytest pytest-cov
+
+      - name: Run unit tests + coverage
+        run: |
+          pytest -q --cov=pythainer --cov-report=term-missing -m "not integration"
+
+  integration:
+    name: Integration (Docker)
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install package + test deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test]"
+
+      - name: Docker info
+        run: docker info
+
+      - name: Run integration tests
+        env:
+          PYTHAINER_INTEGRATION: "1"
+        run: |
+          pytest -q -m integration

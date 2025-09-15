@@ -13,7 +13,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "click>=8.2.1"
+    "black<=25.1.0",
+    "click<=8.2.1",
+    "isort<=6.0.1",
 ]
 
 [project.urls]
@@ -22,6 +24,17 @@ Issues = "https://github.com/apaolillo/pythainer/issues"
 
 [project.scripts]
 pythainer = "pythainer.cli:main"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8",
+  "pytest-cov>=4",
+]
+dev = [
+  "ruff<=0.13.0",
+  "mypy<=1.18.1",
+  "types-click<=7.1.8",
+]
 
 [build-system]
 requires = ["hatchling"]
