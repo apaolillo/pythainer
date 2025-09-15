@@ -3,15 +3,15 @@
 Contributions are welcome.
 Contact the [maintainer](MAINTAINERS) for more information.
 
-### Source organization
+## Source organization
 
 Source organization is already documented for users in the [README](README.md).
 
-### Modifying the core
+## Modifying the core
 
 The core is the `pythainer/` directory.
 
-### Conventions
+## Conventions
 
 When defining a class, the following order of functions should be respected:
 
@@ -25,7 +25,7 @@ When defining a class, the following order of functions should be respected:
  8. Protected or private methods (with the name starting with `_`)
 
 
-### Check list to modify a python file
+## Check list to modify a python file
 
 - if the file is executable, the shebang must be the first line: `#!/usr/bin/env python3`
 - type hinting is correct & complete (to a _reasonable_ extent)
@@ -34,6 +34,6 @@ When defining a class, the following order of functions should be respected:
 - checking: `pylint`
 - checking: `flake8`
 
-### Reviews
+## Reviews
 
 All contributions require to be reviewed by the [maintainer](MAINTAINERS).
