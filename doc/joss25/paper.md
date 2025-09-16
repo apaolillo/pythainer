@@ -10,10 +10,10 @@ tags:
 authors:
   - name: Antonio Paolillo
     orcid: 0000-0001-6608-6562
-    # affiliation: 1
+    affiliation: 1
 affiliations:
   - name: Software Languages Lab, Vrije Universiteit Brussel (VUB), Belgium
-    # index: 1
+    index: 1
     ror: 006e5kg04
 date: 16 September 2025
 bibliography: paper.bib
