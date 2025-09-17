@@ -113,7 +113,7 @@ which shortens setup time and reduces configuration drift. Because `pythainer`
 emits human-readable Dockerfiles, the resulting images remain transparent and
 easy to audit, and the approach integrates well with existing Docker-centric CI.
 
-# Relation to other work
+# Related work
 
 `pythainer` complements the Docker ecosystem by adding a programmable composition
 model on top of Dockerfiles. Unlike Docker Compose or the Docker SDK for Python,
@@ -132,6 +132,16 @@ system-level reproducibility but require adopting a different stack
 adoption in labs and CI. Pragmatically, many third-party packages (e.g., CUDA and
 ROS 2) are primarily supported on Ubuntu, so staying Docker-native with
 Ubuntu-based images eases reproduction without changing the base distribution.
+
+Projects such as Caliban [@ritchie2020caliban] and x11docker [@viereck2019x11docker]
+address related pain points in research containerization. Caliban streamlines
+packaging and running ML experiments across local and cloud environments, while
+x11docker provides secure and convenient ways to run GUI applications inside
+Docker. However, neither of these works addresses general-purpose composition
+of images and runtime policy. In contrast, `pythainer` focuses on composable
+image construction and reusable execution policy—including mounting what is
+required to access the GUI server—while remaining domain-agnostic and
+Docker-native.
 
 # Acknowledgements
 
