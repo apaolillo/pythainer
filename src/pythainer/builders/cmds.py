@@ -9,10 +9,11 @@ The module facilitates the dynamic generation of Dockerfile content based on dif
 and package managers.
 """
 
-import os
 from pathlib import Path
 import shutil
 from typing import List
+
+from pythainer.sysutils import mkdir
 
 
 class DockerBuildCommand:
@@ -73,47 +74,52 @@ class StrDockerBuildCommand(DockerBuildCommand):
 
 class CopyDockerBuildCommand(DockerBuildCommand):
     """
-    Represents a simple string command in a Dockerfile, such as a comment or other directive that
-    does not involve complex logic or conditional behavior.
+    Represents the command string to copy data from the host system to the docker container at build time.
     """
 
     def __init__(self, source_path:Path ,destination_path:Path) -> None:
         """
-        Initializes the StrDockerBuildCommand with a string.
+        Initializes the CopyDockerBuildCommand with a a source and destination path.
 
         Parameters:
-            s (str): The string that represents this Dockerfile command.
+            source_path (Path): Path of folder or file to copy to container
+            destination_path (Path): Path to copy the file or folder to
         """
         super().__init__()
-        self._source_path = source_path
+        self._source_path = source_path.resolve()
         self._destination_path = destination_path
 
     # pylint: disable=arguments-differ
     def get_str_for_dockerfile(
         self,
-        docker_file_Path: Path,
         *args,
         **kwargs,
     ) -> str:
         """
-        Returns the string that was initialized at the creation of the object.
+        Generates a Dockerfile string to move files and folders.
 
         Returns:
-            str: The command string.
+            str: A Dockerfile command string for moving files and folders.
         """
 
         data_path = Path("/tmp/pythainer/docker/data")
+        resulting_path = data_path / self._source_path.relative_to("/")
+        relative_path = Path("data") / self._source_path.relative_to("/")
+        mkdir(data_path)
 
-        if os.path.isfile(self._source_path):
-            shutil.copyfile(self._source_path, data_path / self._source_path)
-        elif os.path.isdir(self._source_path):
-            shutil.copytree(self._source_path, data_path / self._source_path,dirs_exist_ok=True)
+        print(data_path)
+
+        if self._source_path.is_file():
+            mkdir(resulting_path.parent)
+            shutil.copyfile(self._source_path, resulting_path)
+        elif self._source_path.is_dir():
+            shutil.copytree(self._source_path, resulting_path,dirs_exist_ok=True)
         else:
             raise FileExistsError(f'{self._source_path} is not a valid target to copy into the docker container')
 
 
 
-        cmd = f"COPY --chown=${{USER_NAME}} {self._source_path} {self._destination_path}"
+        cmd = f"COPY --chown=${{USER_NAME}} {relative_path} {self._destination_path}"
 
         return cmd
 
