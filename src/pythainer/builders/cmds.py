@@ -102,11 +102,12 @@ class CopyDockerBuildCommand(DockerBuildCommand):
             str: The command string.
         """
 
+        data_path = Path("/tmp/pythainer/docker/data")
+
         if os.path.isfile(self._source_path):
-            shutil.copyfile(self._source_path, docker_file_Path / self._source_path)
+            shutil.copyfile(self._source_path, data_path / self._source_path)
         elif os.path.isdir(self._source_path):
-            shutil.rmtree(docker_file_Path / self._source_path)
-            shutil.copytree(self._source_path, docker_file_Path / self._source_path,dirs_exist_ok=True)
+            shutil.copytree(self._source_path, data_path / self._source_path,dirs_exist_ok=True)
         else:
             raise FileExistsError(f'{self._source_path} is not a valid target to copy into the docker container')
 

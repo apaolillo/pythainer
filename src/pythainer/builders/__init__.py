@@ -7,6 +7,7 @@ handling commands like package installation, environment variable setting, and u
 tailored specifically for Docker environments.
 """
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Dict, List
@@ -30,7 +31,6 @@ from pythainer.sysutils import (
 
 def _generate_dockerfile_content(
     package_manager: str,
-    docker_file_Path: Path,
     commands: List[DockerBuildCommand],
 ) -> str:
     """
@@ -46,7 +46,7 @@ def _generate_dockerfile_content(
         str: The generated Dockerfile content as a string.
     """
     joined_lines = "\n".join(
-        c.get_str_for_dockerfile(pkg_manager=package_manager,docker_file_Path=docker_file_Path) for c in commands
+        c.get_str_for_dockerfile(pkg_manager=package_manager) for c in commands
     )
     file_content = joined_lines.strip() + "\n"
     return file_content
@@ -258,7 +258,6 @@ class DockerBuilder(PartialDockerBuilder):
         """
         super().__init__()
         self._tag = tag
-        self._container_dir = Path(f"/tmp/pythainer/docker/{self._tag}/")
         self._package_manager = package_manager
         self._use_buildkit = use_buildkit
 
@@ -272,7 +271,6 @@ class DockerBuilder(PartialDockerBuilder):
         """
         dockerfile_content = _generate_dockerfile_content(
             package_manager=self._package_manager,
-            docker_file_Path = self._container_dir,
             commands=self._build_commands,
         )
 
@@ -393,28 +391,40 @@ class DockerBuilder(PartialDockerBuilder):
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
         """
 
-        mkdir(self._container_dir)
-        dockerfile_path = (self._container_dir / "Dockerfile").resolve()
-        dockerfile_paths = [dockerfile_path] + (
-            [dockerfile_savepath] if dockerfile_savepath else []
-        )
-        self.generate_dockerfile(dockerfile_paths=dockerfile_paths)
+        main_dir = Path("/tmp/pythainer/docker/")
+        mkdir(main_dir)
+        with tempfile.TemporaryDirectory(
+            prefix="/tmp/pythainer/docker/docker-build-",
+            dir=main_dir,
+        ) as temp_dir:
 
-        command = self.get_build_commands(
-            dockerfile_path=dockerfile_path,
-            docker_build_dir=Path(docker_context).resolve() if docker_context else self._container_dir,
-            uid=get_uid(),
-            gid=get_gid(),
-        )
+            temp_path = Path(temp_dir)
+            dockerfile_path = (temp_path / "Dockerfile").resolve()
+            dockerfile_paths = [dockerfile_path] + (
+                [dockerfile_savepath] if dockerfile_savepath else []
+            )
+            self.generate_dockerfile(dockerfile_paths=dockerfile_paths)
 
-        environment = self.get_build_environment()
+            data_path = main_dir / "data"
 
-        shell_out(
-            command=command,
-            current_dir=self._container_dir,
-            environment=environment,
-            output_is_log=True,
-        )
+            shutil.move(data_path, temp_path)
+
+            command = self.get_build_commands(
+                dockerfile_path=dockerfile_path,
+                docker_build_dir=Path(docker_context).resolve() if docker_context else temp_path,
+                uid=get_uid(),
+                gid=get_gid(),
+            )
+
+            environment = self.get_build_environment()
+
+            shell_out(
+                command=command,
+                current_dir=temp_path,
+                environment=environment,
+                output_is_log=True,
+            )
+
 
     def get_runner(
         self,
