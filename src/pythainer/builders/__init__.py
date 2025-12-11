@@ -9,13 +9,14 @@ tailored specifically for Docker environments.
 import os
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from pythainer.builders.cmds import (
     AddPkgDockerBuildCommand,
     DockerBuildCommand,
     StrDockerBuildCommand,
 )
+from pythainer.builders.commands.run.mounts import RunMount
 from pythainer.runners import ConcreteDockerRunner
 from pythainer.sysutils import (
     PathType,
@@ -61,6 +62,7 @@ class PartialDockerBuilder:
         Initializes a PartialDockerBuilder with an empty list of build commands.
         """
         self._build_commands: List[DockerBuildCommand] = []
+        self._needs_ssh: bool = False
 
     def __or__(self, other: "PartialDockerBuilder") -> "PartialDockerBuilder":
         """
@@ -100,6 +102,7 @@ class PartialDockerBuilder:
         """
         # pylint: disable=protected-access
         self._build_commands.extend(other._build_commands)
+        self._needs_ssh = self._needs_ssh or other._needs_ssh
 
     def space(self) -> None:
         """
@@ -149,14 +152,31 @@ class PartialDockerBuilder:
         cmd = f"ENV {name}={value}"
         self._build_commands.append(StrDockerBuildCommand(cmd))
 
-    def run(self, command: str) -> None:
+    def run(
+        self,
+        command: str,
+        mounts: Iterable[RunMount] | None = None,
+    ) -> None:
         """
         Adds a RUN instruction to the Dockerfile.
 
-        Parameters:
-            command (str): The command to run.
+        Args:
+            command: The shell command to run in the build stage.
+            mounts: Optional iterable of RunMount specifications to be
+                applied as `--mount=...` flags.
         """
-        cmd = f"RUN {command}"
+        if mounts:
+            mount_flags = " ".join(m.to_flag() for m in mounts)
+            cmd_with_mounts = f"{mount_flags} \\\n    {command}"
+
+            # Mark that this build requires SSH support if any ssh mount is used
+            if any(m.mount_type == "ssh" for m in mounts):
+                self._needs_ssh = True
+        else:
+            cmd_with_mounts = f"{command}"
+
+        cmd = f"RUN {cmd_with_mounts}"
+
         self._build_commands.append(StrDockerBuildCommand(cmd))
 
     def entrypoint(self, list_command: List[str]) -> None:
@@ -323,6 +343,16 @@ class DockerBuilder(PartialDockerBuilder):
             output_is_log=False,
         )
 
+        other_args = []
+
+        # Only add --ssh if the Dockerfile actually uses ssh mounts
+        if not self._needs_ssh:
+            ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK")
+            if ssh_auth_sock:
+                other_args += ["--ssh", f"default={ssh_auth_sock}"]
+            else:
+                raise RuntimeError("needs_ssh is False but SSH_AUTH_SOCK is not set.")
+
         command = (
             [
                 docker_path,
@@ -331,6 +361,7 @@ class DockerBuilder(PartialDockerBuilder):
                 f"{dockerfile_path}",
             ]
             + build_args
+            + other_args
             + [
                 f"--tag={self._tag}",
                 f"{docker_build_dir}",

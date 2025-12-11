@@ -367,9 +367,9 @@ def qemu_dependencies() -> List[str]:
 
 def qemu_builder(
     version: str = "10.0.2",
-    targets: Tuple[str] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
-    disables: Tuple[str] = ("xen",),
-    enables: Tuple[str] = ("sdl", "gtk", "slirp"),
+    targets: Tuple[str, ...] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
+    disables: Tuple[str, ...] = ("xen",),
+    enables: Tuple[str, ...] = ("sdl", "gtk", "slirp"),
     cleanup: bool = False,
 ) -> PartialDockerBuilder:
     """
