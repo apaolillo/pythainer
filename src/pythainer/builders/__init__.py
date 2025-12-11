@@ -346,12 +346,12 @@ class DockerBuilder(PartialDockerBuilder):
         other_args = []
 
         # Only add --ssh if the Dockerfile actually uses ssh mounts
-        if not self._needs_ssh:
+        if self._needs_ssh:
             ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK")
             if ssh_auth_sock:
                 other_args += ["--ssh", f"default={ssh_auth_sock}"]
             else:
-                raise RuntimeError("needs_ssh is False but SSH_AUTH_SOCK is not set.")
+                raise RuntimeError("needs_ssh is True but SSH_AUTH_SOCK is not set.")
 
         command = (
             [
