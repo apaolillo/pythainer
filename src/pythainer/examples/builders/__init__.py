@@ -245,7 +245,7 @@ def vTune_builder(
     lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
 ) -> PartialDockerBuilder:
     """
-    Configures a Docker builder for Vtune development.
+    Configures a Docker builder for Vtune.
     Installs necessary Vtune packages.
     and prepares the environment variables
 
@@ -253,7 +253,7 @@ def vTune_builder(
     to make changes to the host system to get full functionality of Vtune on the docker container.
 
     Returns:
-        PartialDockerBuilder: A Docker builder ready to use the intel Vtune profiler.
+        PartialDockerBuilder: A Docker builder ready to use the Intel Vtune profiler.
     """
 
     builder = PartialDockerBuilder()
