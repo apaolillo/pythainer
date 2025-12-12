@@ -17,7 +17,6 @@ def gui_runner(mount_input_events: bool = True) -> DockerRunner:
     """
     Configures a Docker runner to enable GUI applications by setting up necessary environment
     variables and volumes.
-
     Parameters:
         mount_input_events (bool): If True, mounts all input event devices to the container.
                                    Defaults to True.
@@ -89,27 +88,87 @@ def gpu_runner() -> DockerRunner:
     )
 
 
-def personal_runner(user_name: str = "user") -> DockerRunner:
+def personal_runner(
+    user_name: str = "user",
+    preserve_history: bool = False,
+    use_host_rc: bool = False,
+) -> DockerRunner:
     """
-    Sets up a Docker runner with personal configuration files for vim and tmux from a given user's
-    repository.
+    Create a DockerRunner configured with personal environment files, optionally preserving shell
+    history and/or using the host's shell configuration.
 
-    Parameters:
-        user_name (str): The name of the (container) user for whom the environment is configured.
-                         Defaults to "user".
+    By default, the runner mounts personal `vimrc` and `tmux.conf` files from
+    `~/git/machines-config/dotfiles/` into the container for the given user.
+
+    Additional behavior:
+        - If `preserve_history` is True:
+            Creates and mounts persistent bash and zsh history files under `.pythainer/`
+            so command history is preserved between container runs.
+        - If `use_host_rc` is True:
+            Mounts the host's `.bashrc`, `.zshrc`, and `~/dotfiles/` (including its
+            subdirectories) into the container to replicate the host's shell and tool
+            configuration.
+
+    Args:
+        user_name (str, optional):
+            Name of the container user for which the configuration is applied.
+            Defaults to "user".
+        preserve_history (bool, optional):
+            Whether to mount persistent shell history files into the container.
+            Defaults to False.
+        use_host_rc (bool, optional):
+            Whether to mount the host's shell RC files and dotfiles into the container.
+            Defaults to False.
 
     Returns:
-        DockerRunner: A DockerRunner configured with personal environment settings.
+        DockerRunner: Runner instance configured with the specified mounts.
     """
 
     vimrc = Path("~/git/machines-config/dotfiles/vimrc").expanduser()
     tmuxconf = Path("~/git/machines-config/dotfiles/tmux.conf").expanduser()
 
+    volumes = {
+        vimrc: f"/home/{user_name}/.vimrc",
+        tmuxconf: f"/home/{user_name}/.tmux.conf",
+    }
+
+    # Create history files for shells (currently supporting bash and zsh) that are
+    # mounted as volumes in the container. The histories of command are saved between
+    # execution of the container.
+    if preserve_history:
+        histories = [Path("./.pythainer/history.bash"), Path("./.pythainer/history.zsh")]
+        for history in histories:
+            history.parent.mkdir(parents=True, exist_ok=True)
+            if not history.exists():
+                history.write_text("")
+            shell_type = history.suffix.lstrip(".")
+            volumes[history] = f"/home/{user_name}/.{shell_type}_history"
+
+    dotfiles = (
+        [
+            Path("~/dotfiles/").expanduser(),
+            Path("~/.bashrc").expanduser(),
+            Path("~/.zshrc").expanduser(),
+        ]
+        if use_host_rc
+        else []
+    )
+    for dotfile in dotfiles:
+        if dotfile.is_dir():
+            for f in dotfile.iterdir():
+                if f.is_dir():
+                    volumes[f.resolve()] = f"/home/{user_name}/.config/{f.name}"
+        else:
+            volumes[dotfile.resolve()] = f"/home/{user_name}/{dotfile.name}"
+
+    volumes = {
+        str(host_path): docker_path
+        for host_path, docker_path in volumes.items()
+        if host_path.exists()
+    }
+
     return DockerRunner(
         environment_variables={},
-        volumes={
-            f"{vimrc}": f"/home/{user_name}/.vimrc",
-            f"{tmuxconf}": f"/home/{user_name}/.tmux.conf",
-        },
+        volumes=volumes,
         devices=[],
     )

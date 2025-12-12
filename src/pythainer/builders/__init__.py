@@ -27,7 +27,7 @@ from pythainer.sysutils import (
 )
 
 
-def _generate_dockerfile_content(
+def render_dockerfile_content(
     package_manager: str,
     commands: List[DockerBuildCommand],
 ) -> str:
@@ -77,6 +77,19 @@ class PartialDockerBuilder:
         result_builder._extend(other=self)
         result_builder._extend(other=other)
         return result_builder
+
+    def __ior__(self, other: "PartialDockerBuilder") -> "PartialDockerBuilder":
+        """
+        In-place merge of another PartialDockerBuilder into this one.
+
+        Parameters:
+            other (PartialDockerBuilder): The other builder to merge into this one.
+
+        Returns:
+            PartialDockerBuilder: The current builder with commands from the other merged in.
+        """
+        self._extend(other=other)
+        return self
 
     def _extend(self, other: "PartialDockerBuilder") -> None:
         """
@@ -255,7 +268,7 @@ class DockerBuilder(PartialDockerBuilder):
         Parameters:
             dockerfile_paths (List[PathType]): A list of paths where the Dockerfile should be saved.
         """
-        dockerfile_content = _generate_dockerfile_content(
+        dockerfile_content = render_dockerfile_content(
             package_manager=self._package_manager,
             commands=self._build_commands,
         )
@@ -375,6 +388,7 @@ class DockerBuilder(PartialDockerBuilder):
 
         Parameters:
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
+            docker_context (PathType): Optional path to save the Docker context used for the build.
         """
         main_dir = Path("/tmp/pythainer/docker/")
         mkdir(main_dir)
@@ -576,6 +590,7 @@ class DockerfileDockerBuilder(DockerBuilder):
     ) -> None:
         raise NotImplementedError()
 
+    # pylint: disable=arguments-differ
     def build(self, dockerfile_savepath: PathType = "") -> None:
         if dockerfile_savepath:
             raise NotImplementedError()

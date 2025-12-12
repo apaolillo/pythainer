@@ -123,18 +123,24 @@ def realsense2_lib_install_from_src(
     workdir: str,
     commit: str = "v2.55.1",
     debug: bool = True,
-    extra_cmake_options: Dict[str, str] = {},
+    extra_cmake_options: Dict[str, str] | None = None,
 ) -> None:
     """
     Installs the Intel Realsense library from source using a Docker builder, including necessary
     dependencies.
 
     Parameters:
-        builder (DockerBuilder): The builder instance to use for Docker commands.
-        workdir (str): The working directory path where to clone the source repository.
-        commit (str): The specific git commit hash to checkout for the build.
-        debug (bool): Whether to build in Debug mode. Defaults to True.
-        extra_cmake_options (Dict[str, str]): Additional CMake options to pass to the build process. Defaults to None.
+        builder (DockerBuilder):
+            The builder instance to use for Docker commands.
+        workdir (str):
+            The working directory path where to clone the source repository.
+        commit (str):
+            The specific git commit hash to checkout for the build.
+        debug (bool):
+            Whether to build in Debug mode. Defaults to True.
+        extra_cmake_options (Dict[str, str]):
+            Additional CMake options to pass to the build process.
+            Defaults to None.
     """
 
     builder.desc("Build & Install librealsense2 from source")
@@ -174,7 +180,8 @@ def realsense2_lib_install_from_src(
             "BUILD_EXAMPLES": "true",
             "BUILD_GRAPHICAL_EXAMPLES": "true",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
-        } | extra_cmake_options,
+        }
+        | extra_cmake_options,
     )
 
 
@@ -259,7 +266,10 @@ def tensor_rt_lib_install_from_deb(
         tag (str): Version tag of the TensorRT library, used in forming the download URL.
         cuda_tag (str): CUDA version tag, used in forming the download URL.
     """
-    tensorrt_download_url = f"https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{tag}/local_repo/nv-tensorrt-local-repo-{os}-{tag}-cuda-{cuda_tag}_1.0-1_amd64.deb"
+    tensorrt_download_url = (
+        f"https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/"
+        f"{tag}/local_repo/nv-tensorrt-local-repo-{os}-{tag}-cuda-{cuda_tag}_1.0-1_amd64.deb"
+    )
     project_deb_download_install(
         builder=builder,
         workdir=workdir,
@@ -267,7 +277,11 @@ def tensor_rt_lib_install_from_deb(
         package_url=tensorrt_download_url,
         extra_commands_before_install=["rm -f /etc/apt/sources.list.d/cuda*.list"],
         extra_commands_after_install=[
-            f"cp /var/nv-tensorrt-local-repo-{os}-{tag}-cuda-{cuda_tag}/*-keyring.gpg /usr/share/keyrings/"
+            (
+                f"cp "
+                f"/var/nv-tensorrt-local-repo-{os}-{tag}-cuda-{cuda_tag}/*-keyring.gpg "
+                "/usr/share/keyrings/"
+            )
         ],
     )
     # Pin the local repository to force using the given versions.
@@ -299,7 +313,10 @@ def cudnn_lib_install_from_deb(
         os (str): Operating system identifier, used in forming the download URL.
         tag (str): Version tag of the cuDNN library, also used in forming the download URL.
     """
-    cudnn_download_url = f"https://developer.download.nvidia.com/compute/redist/cudnn/v8.8.0/local_installers/12.0/cudnn-local-repo-{os}-{tag}_1.0-1_amd64.deb"
+    cudnn_download_url = (
+        f"https://developer.download.nvidia.com/compute/redist/cudnn/v8.8.0/local_installers/12.0/"
+        f"cudnn-local-repo-{os}-{tag}_1.0-1_amd64.deb"
+    )
     project_deb_download_install(
         builder=builder,
         workdir=workdir,
@@ -321,29 +338,37 @@ def cudnn_lib_install_from_deb(
 
 def nsight_systems_install(
     builder: DockerBuilder,
-    os : str =  "ubuntu1804",
+    os: str = "ubuntu1804",
 ):
     """
     Install nsight following https://docs.nvidia.com/nsight-systems/InstallationGuide/index.html
     Currently only ubuntu1804 for all linux version
 
     Parameters:
-        builder (DockerBuilder): An instance of DockerBuilder for executing commands.
-        os (str): Operating system identifier, used in forming the download URL, currently only ubuntu1804 for all linux version.
+        builder (DockerBuilder):
+            An instance of DockerBuilder for executing commands.
+        os (str):
+            Operating system identifier, used in forming the download URL, currently only ubuntu1804
+            for all linux version.
     """
     if os == "ubuntu1804":
         builder.run_multiple(
             commands=[
-                f"apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/{os}/x86_64/7fa2af80.pub",
-                "add-apt-repository \"deb https://developer.download.nvidia.com/devtools/repos/ubuntu$(. /etc/lsb-release; echo \"$DISTRIB_RELEASE\" | tr -d .)/$(dpkg --print-architecture)/ /\"",
+                (
+                    f"apt-key adv "
+                    f"--fetch-keys "
+                    f"https://developer.download.nvidia.com/compute/cuda/repos/{os}/x86_64/"
+                    "7fa2af80.pub"
+                ),
+                (
+                    'add-apt-repository "deb '
+                    "https://developer.download.nvidia.com/devtools/repos/"
+                    'ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d .)/'
+                    '$(dpkg --print-architecture)/ /"'
+                ),
             ]
         )
     else:
-        # TODO: Add support for other OSes
         raise ValueError(f"Unsupported OS: {os}. Currently, only 'ubuntu1804' is supported.")
 
-    builder.add_packages(
-        packages=[
-            "nsight-systems"
-        ]
-    )
+    builder.add_packages(packages=["nsight-systems"])

@@ -19,19 +19,27 @@ venv_dir=$(readlink -f "${pythainer_root_dir}/venv")
   flake8=$(readlink -f "${venv_dir}/bin/flake8")
   isort=$(readlink -f "${venv_dir}/bin/isort")
   black=$(readlink -f "${venv_dir}/bin/black")
+  ruff=$(readlink -f "${venv_dir}/bin/ruff")
+  mypy=$(readlink -f "${venv_dir}/bin/mypy")
 
   echo "-- check copyright. --"
   ./scripts/list_missing_copyright.sh
 
   echo "-- running pylint. --"
-  ${pylint} src/ || true
+  ${pylint} src/ tests/ examples/ || true
 
   echo "-- running flake8. --"
-  ${flake8} src/ || true
+  ${flake8} src/ tests/ examples/ || true
 
   echo "-- running isort. --"
-  ${isort} --profile=black src/
+  ${isort} --profile=black src/ tests/ examples/
 
   echo "-- running black. --"
   ${black} -l 100 .
+
+  echo "-- running ruff. --"
+  ${ruff} check .
+
+  echo "-- running mypy. --"
+  ${mypy} .
 )
