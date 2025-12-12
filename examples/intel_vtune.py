@@ -4,6 +4,7 @@ from pythainer.examples.builders import get_user_gui_builder, vTune_builder
 from pythainer.examples.runners import gui_runner
 from pythainer.runners import ConcreteDockerRunner
 
+
 def main():
     image_name = "pythainertest"
     builder = get_user_gui_builder(image_name=image_name, base_ubuntu_image="ubuntu:22.04")
@@ -17,6 +18,7 @@ def main():
     runner |= guiRun
 
     runner.run()
+
 
 if __name__ == "__main__":
     main()
