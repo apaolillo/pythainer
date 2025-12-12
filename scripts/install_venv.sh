@@ -3,7 +3,14 @@ set -e
 
 script_dir=$(dirname "$(readlink -f "$0")")
 
-python_exec=python3.10
+if python3 -c 'import sys; exit(0 if sys.version_info >= (3, 10) else 1)'
+then
+  # installed python is at least 3.10
+  python_exec=python3
+else
+  # for earlier default, we force 3.10
+  python_exec=python3.10
+fi
 
 ${python_exec} -m venv venv
 
