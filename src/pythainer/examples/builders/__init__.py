@@ -246,11 +246,7 @@ def vtune_builder(
 ) -> PartialDockerBuilder:
     """
     Configures a Docker builder for VTune.
-    Installs necessary VTune packages.
-    and prepares the environment variables
-
-    Since VTune in reality is still profiling the host system you will need
-    to make changes to the host system to get full functionality of VTune on the docker container.
+    Installs necessary VTune packages and prepares the environment variables.
 
     Returns:
         PartialDockerBuilder: A Docker builder ready to use the Intel VTune profiler.
@@ -268,7 +264,7 @@ def vtune_builder(
             "libgtk-3-dev",
             "libxss-dev",
             "libasound2",
-            "xdg-utils",  # TODO: this is to view documentation but this seems to not be enough
+            "xdg-utils",
             "kmod",
         ]
     )

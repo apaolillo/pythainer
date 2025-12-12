@@ -24,7 +24,7 @@ def main():
     Main entry point: builds and runs the VTune Docker container.
     """
     image_name = "pythainertest"
-    builder = get_user_gui_builder(image_name=image_name, base_ubuntu_image="ubuntu:22.04")
+    builder = get_user_gui_builder(image_name=image_name, base_ubuntu_image="ubuntu:24.04")
     builder.root()
     builder.add_packages(packages=["vim", "git", "tmux"])
     builder.user("${USER_NAME}")
