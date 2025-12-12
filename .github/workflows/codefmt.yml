@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies from requirements.txt
       run: |
         python3 -m pip install --upgrade pip
-        pip3 install $(grep -E '^(black|isort|flake8|pylint)' requirements.txt)
+        pip3 install $(grep -E '^(black|isort|flake8|pylint|pytest|ruff|mypy|types-click)' requirements.txt)
 
     - name: Show versions of tools
       run: |
@@ -27,10 +27,12 @@ jobs:
         echo "isort $(isort --version-number)"
         flake8 --version
         pylint --version
+        ruff --version
+        mypy --version
 
     - name: Run isort (check only)
       run: |
-        isort --check-only --profile=black src/ tests/ scripts/
+        isort --check-only --profile=black src/ tests/ examples/ scripts/
 
     - name: Run Black (check only)
       run: |
@@ -38,11 +40,20 @@ jobs:
 
     - name: Run Flake8
       run: |
-        flake8 src/ tests/
+        flake8 src/ tests/ examples/
 
     - name: Run pylint
       run: |
-        pylint src/ tests/
+        pylint src/ tests/ examples/
+
+    - name: Run ruff
+      run: |
+        ruff check .
+
+# TODO enable when ready:
+#    - name: Run mypy
+#      run: |
+#        mypy .
 
     - name: Check copyright
       run: |

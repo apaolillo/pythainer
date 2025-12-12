@@ -1,9 +1,59 @@
 # Changelog
 
-All notable changes to benchkit will be documented in this file.
+All notable changes to pythainer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.0.5] - 2025-09-15
+
+### Added
+
+- CLI: new `pythainer` command with:
+  - `run` to compose builders/runners and execute directly.
+  - `scaffold` to generate a build+run Python script (formatted with black/isort).
+- Builders:
+  - New QEMU builder.
+  - New Rust builder (with optional `nightly=True`).
+  - NVIDIA Nsight install helper.
+  - Package installer helpers: .deb, TensorRT, cuDNN.
+  - Support for `unminimize` on Ubuntu 24.
+  - Configurable local path for `git clone`.
+- Composition:
+  - In-place OR operator `|=` to compose partial builders.
+- Runners:
+  - Personal runner improvements (dotfiles, optional shell history preservation).
+  - Ability to run shell commands before entering the interactive session.
+- QEMU builder:
+  - Customizable configure flags via `enables`/`disables`.
+  - Default user-mode networking enabled (`--enable-slirp`).
+- CI/CD:
+  - New `tests.yml` workflow (Python matrix) and Docker-gated integration job.
+  - Separate lint/check workflow (codefmt).
+  - Added Ruff and mypy into checks; extras `[test]` and `[dev]` for local/CI parity.
+- Tests:
+  - Typed unit tests for deterministic Dockerfile rendering and CLI behavior.
+  - Integration smoke test building a tiny Alpine image.
+  - Additional LLVM container test.
+- Docs:
+  - README overhaul (motivation, installation, examples, runners, CLI, badges).
+  - ROADMAP updated.
+  - Moved runnable example scripts into `examples/` (LLVM/MLIR, QEMU).
+
+### Changed
+
+- Public API: expose Click command group as `cli` (keep `main` as entry-point alias).
+- Builders/utils: more generic CMake handling and extra CMake options for example installers.
+- Linting/formatting: address warnings and formatting issues across the codebase.
+
+### Fixed
+
+- macOS: detect Docker path reliably when `docker` is not in the default PATH.
+- Builders: fix bug in `unminimize`.
+- Examples: realSense build/container fixes.
+- Dockerfile COPY: minor follow-up fixes after introducing COPY support.
 
 ## [0.0.4] - 2024-07-30
 

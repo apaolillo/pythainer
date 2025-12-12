@@ -1,6 +1,6 @@
 [project]
 name = "pythainer"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
   { name="Antonio Paolillo", email="antonio@paolillo.be" },
 ]
@@ -12,10 +12,29 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "black<=25.1.0",
+    "click<=8.2.1",
+    "isort<=6.0.1",
+]
 
 [project.urls]
 Homepage = "https://github.com/apaolillo/pythainer"
 Issues = "https://github.com/apaolillo/pythainer/issues"
+
+[project.scripts]
+pythainer = "pythainer.cli:main"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8",
+  "pytest-cov>=4",
+]
+dev = [
+  "ruff<=0.13.0",
+  "mypy<=1.18.1",
+  "types-click<=7.1.8",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -33,3 +52,39 @@ skip = [
     "venv"
 ]
 skip_glob = ["**/venv/**/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/W = pycodestyle (incl. trailing whitespace W291/W293)
+# F   = pyflakes
+# I   = import sorting (isort)
+# B   = bugbear
+# UP  = pyupgrade
+# SIM = simplify
+# C4  = comprehensions
+# RET = return-related
+# A   = builtins shadowing
+# TID = tidy-imports
+# ERA = commented-out code
+# S   = security (bandit)
+# TODO enable the following when ready
+# select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "RET", "A", "TID", "ERA", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests often use assert and subprocess; relax noisy bandit checks here.
+# TODO enable the following when ready
+# "tests/**" = ["S101", "S603", "S607"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["pythainer"]
+# TODO enable the following when ready
+#disallow_untyped_defs = true
+#no_implicit_optional = true
+#warn_return_any = true
+#warn_unused_ignores = true
+#strict_equality = true
+#pretty = true

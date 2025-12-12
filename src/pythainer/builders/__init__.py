@@ -29,7 +29,7 @@ from pythainer.sysutils import (
 )
 
 
-def _generate_dockerfile_content(
+def render_dockerfile_content(
     package_manager: str,
     commands: List[DockerBuildCommand],
 ) -> str:
@@ -269,7 +269,7 @@ class DockerBuilder(PartialDockerBuilder):
         Parameters:
             dockerfile_paths (List[PathType]): A list of paths where the Dockerfile should be saved.
         """
-        dockerfile_content = _generate_dockerfile_content(
+        dockerfile_content = render_dockerfile_content(
             package_manager=self._package_manager,
             commands=self._build_commands,
         )
@@ -389,6 +389,7 @@ class DockerBuilder(PartialDockerBuilder):
 
         Parameters:
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
+            docker_context (PathType): Optional path to save the Docker context used for the build.
         """
 
         main_dir = Path("/tmp/pythainer/docker/")
