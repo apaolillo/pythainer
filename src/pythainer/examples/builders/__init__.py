@@ -245,21 +245,21 @@ def vTune_builder(
     lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
 ) -> PartialDockerBuilder:
     """
-    Configures a Docker builder for Vtune.
-    Installs necessary Vtune packages.
+    Configures a Docker builder for VTune.
+    Installs necessary VTune packages.
     and prepares the environment variables
 
-    Since Vtune in reality is still profiling the host system you will need
-    to make changes to the host system to get full functionality of Vtune on the docker container.
+    Since VTune in reality is still profiling the host system you will need
+    to make changes to the host system to get full functionality of VTune on the docker container.
 
     Returns:
-        PartialDockerBuilder: A Docker builder ready to use the Intel Vtune profiler.
+        PartialDockerBuilder: A Docker builder ready to use the Intel VTune profiler.
     """
 
     builder = PartialDockerBuilder()
     builder.space()
 
-    builder.desc("Required for Vtune")
+    builder.desc("Required for Intel VTune")
     builder.root()
     builder.add_packages(
         packages=[
@@ -292,7 +292,7 @@ def vTune_builder(
 
     builder.user()
 
-    # Add the script that sets up the env variables for Vtune to the bashrc,
+    # Add the script that sets up the env variables for VTune to the bashrc,
     # so they are present for the user.
     file_to_source = "/opt/intel/oneapi/vtune/latest/env/vars.sh"
     builder.run(command=f'echo "[ -e "{file_to_source}" ] && source {file_to_source}" >> ~/.bashrc')
