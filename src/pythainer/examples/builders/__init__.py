@@ -360,6 +360,7 @@ def qemu_dependencies() -> List[str]:
         "libasound2-dev",
         "libpulse-dev",
         "libx11-dev",
+        "libslirp0",
     ]
 
     return qemu_packages
