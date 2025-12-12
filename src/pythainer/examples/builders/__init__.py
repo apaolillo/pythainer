@@ -12,7 +12,6 @@ from typing import List, Tuple
 from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder
 from pythainer.builders.utils import cmake_build_install
 from pythainer.examples.installs import clspv_build_install
-from pythainer.sysutils import shell_out
 
 
 def get_user_builder(
@@ -243,19 +242,15 @@ def vulkan_builder() -> PartialDockerBuilder:
 
 
 def vTune_builder(
-        lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
+    lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
 ) -> PartialDockerBuilder:
     """
     Configures a Docker builder for Vtune development.
     Installs necessary Vtune packages.
     and prepares the environment variables
 
-    Since Vtune in reality is still profiling the host system you need will need
+    Since Vtune in reality is still profiling the host system you will need
     to make changes to the host system to get full functionality of Vtune on the docker container.
-
-    One such can be:
-    Run "echo "0" | sudo tee /proc/sys/kernel/yama/ptrace_scope > /dev/null" on host
-        WARNING doing this comes with security concerns (https://www.kernel.org/doc/Documentation/security/Yama.txt)
 
     Returns:
         PartialDockerBuilder: A Docker builder ready to use the intel Vtune profiler.
@@ -273,40 +268,36 @@ def vTune_builder(
             "libgtk-3-dev",
             "libxss-dev",
             "libasound2",
-            "xdg-utils", #TODO: this is to view documentation but this seems to not be enough
-            "kmod"
+            "xdg-utils",  # TODO: this is to view documentation but this seems to not be enough
+            "kmod",
         ]
     )
 
     builder.user()
     builder.workdir(path=lib_dir)
-    builder.run_multiple([
-            'wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
-            'sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
-            'rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB',
-            'echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list'
-            ]
+    builder.run_multiple(
+        [
+            "wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB",
+            "sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB",
+            "rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB",
+            'echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list',
+        ]
     )
 
     builder.root()
-    builder.add_packages(
-        packages=[
-            "intel-oneapi-vtune"
-            ]
-    )
+    builder.add_packages(packages=["intel-oneapi-vtune"])
 
     builder.user()
 
     # Add the script that sets up the env variables for Vtune to the bashrc,
     # so they are present for the user.
     file_to_source = "/opt/intel/oneapi/vtune/latest/env/vars.sh"
-    builder.run(
-            command=f'echo "[ -e "{file_to_source}" ] && source {file_to_source}" >> ~/.bashrc'
-    )
+    builder.run(command=f'echo "[ -e "{file_to_source}" ] && source {file_to_source}" >> ~/.bashrc')
 
     builder.space()
 
     return builder
+
 
 def clspv_builder() -> PartialDockerBuilder:
     """
