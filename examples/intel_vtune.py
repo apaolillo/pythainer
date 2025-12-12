@@ -20,7 +20,7 @@ from pythainer.runners import ConcreteDockerRunner
 
 
 def main():
-        """
+    """
     Main entry point: builds and runs the VTune Docker container.
     """
     image_name = "pythainertest"
