@@ -230,7 +230,7 @@ class PartialDockerBuilder:
             source_path (Path): The file or folder to copy to the container.
             destination_path (Path): The location to place the file or folder within the Docker container.
         """
-        self._build_commands.append(CopyDockerBuildCommand(source_path,destination_path))
+        self._build_commands.append(CopyDockerBuildCommand(source_path, destination_path))
 
 
 class DockerBuilder(PartialDockerBuilder):
@@ -425,7 +425,6 @@ class DockerBuilder(PartialDockerBuilder):
                 environment=environment,
                 output_is_log=True,
             )
-
 
     def get_runner(
         self,

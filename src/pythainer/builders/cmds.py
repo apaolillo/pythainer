@@ -9,8 +9,8 @@ The module facilitates the dynamic generation of Dockerfile content based on dif
 and package managers.
 """
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import List
 
 from pythainer.sysutils import mkdir
@@ -72,12 +72,13 @@ class StrDockerBuildCommand(DockerBuildCommand):
         """
         return str(self._str)
 
+
 class CopyDockerBuildCommand(DockerBuildCommand):
     """
     Represents the command string to copy data from the host system to the docker container at build time.
     """
 
-    def __init__(self, source_path:Path ,destination_path:Path) -> None:
+    def __init__(self, source_path: Path, destination_path: Path) -> None:
         """
         Initializes the CopyDockerBuildCommand with a a source and destination path.
 
@@ -113,11 +114,11 @@ class CopyDockerBuildCommand(DockerBuildCommand):
             mkdir(resulting_path.parent)
             shutil.copyfile(self._source_path, resulting_path)
         elif self._source_path.is_dir():
-            shutil.copytree(self._source_path, resulting_path,dirs_exist_ok=True)
+            shutil.copytree(self._source_path, resulting_path, dirs_exist_ok=True)
         else:
-            raise FileExistsError(f'{self._source_path} is not a valid target to copy into the docker container')
-
-
+            raise FileExistsError(
+                f"{self._source_path} is not a valid target to copy into the docker container"
+            )
 
         cmd = f"COPY --chown=${{USER_NAME}} {relative_path} {self._destination_path}"
 
