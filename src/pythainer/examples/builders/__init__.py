@@ -241,7 +241,7 @@ def vulkan_builder() -> PartialDockerBuilder:
     return builder
 
 
-def vTune_builder(
+def vtune_builder(
     lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
 ) -> PartialDockerBuilder:
     """
