@@ -9,7 +9,7 @@ projects like CLSPV.
 
 from typing import List, Tuple
 
-from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder
+from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder, UserManager
 from pythainer.builders.utils import cmake_build_install
 from pythainer.examples.installs import clspv_build_install
 
@@ -268,6 +268,7 @@ def rust_builder(
     install_cargo_edit: bool = True,
     install_cargo_watch: bool = False,
     install_nightly: bool = False,
+    user_manager: UserManager | None = None,
 ) -> PartialDockerBuilder:
     """
     Sets up a Docker builder for Rust development by installing Rust via rustup
@@ -279,12 +280,16 @@ def rust_builder(
         install_cargo_edit (bool): Whether to install cargo-edit (adds `cargo add`, etc.).
         install_cargo_watch (bool): Whether to install cargo-watch for file change detection.
         install_nightly (bool): Whether to install the nightly version of rust or not.
+        user_manager(UserManager | None): The `UserManager` from the parent builder or None if
+                                          the user wants to use the legacy user API
 
     Returns:
         PartialDockerBuilder: Docker builder configured for Rust development.
     """
     builder = PartialDockerBuilder()
-    builder.user()
+    builder.user_manager = user_manager
+
+    builder.user(name="User", check=True if builder.user_manager else False)
 
     # Install Rust using rustup (non-interactive)
     cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"

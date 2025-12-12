@@ -6,6 +6,8 @@ This module provides classes for building Docker images programmatically with cu
 handling commands like package installation, environment variable setting, and user management,
 tailored specifically for Docker environments.
 """
+
+from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
@@ -50,6 +52,121 @@ def render_dockerfile_content(
     return file_content
 
 
+class UserException(Exception):
+    pass
+
+
+class UserContext:
+    """
+    A class that implements a user context manager where within said context, all actions will be
+    done on behalf of a chosen user.
+    """
+
+    def __init__(
+        self, partial_docker_builder: PartialDockerBuilder, on_behalf: str, return_to: str
+    ) -> None:
+        self.return_to: str = return_to
+        self.on_behalf: str = on_behalf
+        self.partial_docker_builder: PartialDockerBuilder = partial_docker_builder
+
+    def __enter__(self) -> PartialDockerBuilder:
+        """
+        Sets the current user to `self.on_behalf`
+        """
+        self.partial_docker_builder.user(name=self.on_behalf)
+        return self.partial_docker_builder
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Sets the current user to `self.return_to` and propagates errors
+        """
+        self.partial_docker_builder.user(name=self.return_to)
+        return False  # propagate error
+
+
+class UserManager:
+    """
+    A class to manage a container's users statefully
+    """
+
+    def __init__(self) -> None:
+        # root is always a user by default and USER_NAME is the fallback user
+        self.managed_users: List[str] = [
+            "root",
+            "${USER_NAME}",
+        ]  
+        self.current_user: str = "root"
+
+    def manage_user(self, username: str) -> None:
+        """
+        Manages the user `username` through the `UserManager`
+        """
+        if username in self.managed_users:
+            raise UserException(
+                (
+                    f"UserException where incoming user is '{username}' "
+                    f"and managed user are '{self.managed_users}' "
+                    "User already exists"
+                )
+            )
+
+        self.managed_users.append(username)
+
+    def user(
+        self, partial_docker_builder: PartialDockerBuilder, name: str = "", check: bool = True
+    ) -> None:
+        """
+        Sets the USER for subsequent commands in the Dockerfile.
+
+        Parameters:
+            partial_docker_builder (PartialDockerBuilder): The parent docker builder
+            name (str): The username or UID. Defaults to the environment variable USER_NAME.
+            check (bool): Toggle to check or not if the user is managed for backwards compatibility
+        """
+        if not name:
+            name = "${USER_NAME}"  # fallback user
+        elif check and (name not in self.managed_users):
+            raise UserException(
+                (
+                    f"UserException where incoming user is '{name}' "
+                    f"and managed users are '{self.managed_users}' "
+                    "User is not managed"
+                )
+            )
+
+        cmd = f"USER {name}"
+
+        self.current_user = name
+        partial_docker_builder._build_commands.append(StrDockerBuildCommand(cmd))
+
+    def as_user(
+        self, partial_docker_builder: PartialDockerBuilder, username: str
+    ) -> UserContext | None:
+        """
+        If the `username` user is managed, returns a `UserContext`
+
+        Parameters:
+            partial_docker_builder (PartialDockerBuilder): The managed docker builder
+            username (str): The user for which to provide a `UserContext`
+
+        Returns:
+            UserContext | None : The context manager for the user or None if an error occured
+        """
+        if username not in self.managed_users:
+            raise UserException(
+                (
+                    f"UserException where incoming user is '{username}' "
+                    f"and managed users are '{self.managed_users}' "
+                    "User is not managed"
+                )
+            )
+
+        return_to: str = self.current_user
+        self.current_user = username
+
+        return UserContext(partial_docker_builder, on_behalf=self.current_user, return_to=return_to)
+
+
 class PartialDockerBuilder:
     """
     A class to facilitate the building of partial Docker configurations that can be extended or
@@ -61,6 +178,7 @@ class PartialDockerBuilder:
         Initializes a PartialDockerBuilder with an empty list of build commands.
         """
         self._build_commands: List[DockerBuildCommand] = []
+        self.user_manager: UserManager | None = None
 
     def __or__(self, other: "PartialDockerBuilder") -> "PartialDockerBuilder":
         """
@@ -74,8 +192,10 @@ class PartialDockerBuilder:
             PartialDockerBuilder: A new builder instance with combined commands.
         """
         result_builder = PartialDockerBuilder()
+        user_manager = self.user_manager  # prepare to move the users
         result_builder._extend(other=self)
         result_builder._extend(other=other)
+        result_builder.user_manager = user_manager
         return result_builder
 
     def __ior__(self, other: "PartialDockerBuilder") -> "PartialDockerBuilder":
@@ -183,24 +303,6 @@ class PartialDockerBuilder:
         command = " && \\\n    ".join(commands)
         self.run(command=command)
 
-    def user(self, name: str = "") -> None:
-        """
-        Sets the USER for subsequent commands in the Dockerfile.
-
-        Parameters:
-            name (str): The username or UID. Defaults to the environment variable USER_NAME.
-        """
-        if not name:
-            name = "${USER_NAME}"
-        cmd = f"USER {name}"
-        self._build_commands.append(StrDockerBuildCommand(cmd))
-
-    def root(self) -> None:
-        """
-        Sets the USER to root for subsequent commands.
-        """
-        self.user(name="root")
-
     def workdir(self, path: PathType) -> None:
         """
         Sets the working directory for subsequent commands in the Dockerfile.
@@ -230,6 +332,68 @@ class PartialDockerBuilder:
         """
         cmd = f"COPY {filename} {destination}"
         self._build_commands.append(StrDockerBuildCommand(cmd))
+
+    def create_user(self, username: str) -> None:
+        """
+        Creates a non-root user within the Docker environment with sudo privileges that is managed
+        by the `UserManager`
+
+        Parameters:
+            username (str): The username of the new user.
+        """
+        if not self.user_manager:
+            self.user_manager = UserManager()
+        self.user_manager.manage_user(username)
+
+        self.arg(name="USER_NAME", value=username)
+        self.arg(name="UID")
+        self.arg(name="GID")
+        self.remove_group_if_gid_exists(gid="${GID}")
+        self.remove_user_if_uid_exists(uid="${UID}", gid="${GID}")
+        self.run(command="groupadd -g ${GID} ${USER_NAME}")
+        self.run(
+            command='adduser --disabled-password --uid $UID --gid $GID --gecos "" ${USER_NAME}'
+        )
+        self.run(command="adduser ${USER_NAME} sudo")
+        self.run(command="echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers")
+        self.run(command='echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/10-docker')
+
+    def root(self) -> None:
+        """
+        Sets the USER to root for subsequent commands.
+        """
+        self.user(name="root")
+
+    def user(self, name: str = "", check: bool = True) -> None:
+        """
+        Sets the USER for subsequent commands in the Dockerfile.
+
+        Parameters:
+            name (str): The username or UID. Defaults to the environment variable USER_NAME.
+            check (bool): Toggle to check or not if the user is managed for backwards compatibility
+        """
+        self.user_manager.user(self, name, check)
+
+    def as_user(self, username: str) -> UserContext | None:
+        """
+        If the `username` user is managed, returns a `UserContext`
+
+        Parameters:
+            username (str): The user for which to provide a `UserContext`
+
+        Returns:
+            UserContext | None : The context manager for the user or None if an error occured
+        """
+        return self.user_manager.as_user(self, username)
+
+    def as_root(self) -> UserContext:
+        """
+        A shorthand to get a `UserContext` for the root user
+
+        Returns:
+            UserContext: The context manager for the root user
+        """
+        return self.user_manager.as_user(self, username="root")
 
 
 class DockerBuilder(PartialDockerBuilder):
@@ -535,26 +699,6 @@ class UbuntuDockerBuilder(DockerBuilder):
             f"    true"
         )
         self.run(command=command)
-
-    def create_user(self, username: str) -> None:
-        """
-        Creates a non-root user within the Docker environment with sudo privileges.
-
-        Parameters:
-            username (str): The username of the new user.
-        """
-        self.arg(name="USER_NAME", value=username)
-        self.arg(name="UID")
-        self.arg(name="GID")
-        self.remove_group_if_gid_exists(gid="${GID}")
-        self.remove_user_if_uid_exists(uid="${UID}", gid="${GID}")
-        self.run(command="groupadd -g ${GID} ${USER_NAME}")
-        self.run(
-            command='adduser --disabled-password --uid $UID --gid $GID --gecos "" ${USER_NAME}'
-        )
-        self.run(command="adduser ${USER_NAME} sudo")
-        self.run(command="echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers")
-        self.run(command='echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/10-docker')
 
 
 class DockerfileDockerBuilder(DockerBuilder):
