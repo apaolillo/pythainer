@@ -193,15 +193,21 @@ class PartialDockerBuilder:
         cmd = f"ENTRYPOINT {head}{body}{tail}"
         self._build_commands.append(StrDockerBuildCommand(cmd))
 
-    def run_multiple(self, commands: List[str]) -> None:
+    def run_multiple(
+        self,
+        commands: List[str],
+        mounts: Iterable[RunMount] | None = None,
+    ) -> None:
         """
         Adds multiple commands to be run in a single RUN instruction in the Dockerfile.
 
         Parameters:
             commands (List[str]): The commands to run.
+            mounts: Optional iterable of RunMount specifications to be
+                applied as `--mount=...` flags.
         """
         command = " && \\\n    ".join(commands)
-        self.run(command=command)
+        self.run(command=command, mounts=mounts)
 
     def user(self, name: str = "") -> None:
         """
