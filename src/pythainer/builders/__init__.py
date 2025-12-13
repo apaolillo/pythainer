@@ -333,9 +333,9 @@ class DockerBuilder(PartialDockerBuilder):
             List[str]: The complete Docker build command as a list of strings.
         """
         build_args = []
-        if uid is not None:
+        if uid is not None and uid and "0" != uid:
             build_args.append(f"--build-arg=UID={uid}")
-        if gid is not None:
+        if gid is not None and gid and "0" != gid:
             build_args.append(f"--build-arg=GID={gid}")
 
         docker_path = shell_out(
@@ -575,8 +575,8 @@ class UbuntuDockerBuilder(DockerBuilder):
             username (str): The username of the new user.
         """
         self.arg(name="USER_NAME", value=username)
-        self.arg(name="UID")
-        self.arg(name="GID")
+        self.arg(name="UID", value="1000") # default value if UID not provided
+        self.arg(name="GID", value="1000") # default value if GID not provided
         self.remove_group_if_gid_exists(gid="${GID}")
         self.remove_user_if_uid_exists(uid="${UID}", gid="${GID}")
         self.run(command="groupadd -g ${GID} ${USER_NAME}")
