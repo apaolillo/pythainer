@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2025 Antonio Paolillo. All rights reserved.
+# SPDX-License-Identifier: MIT
 """
 Build the JOSS25 paper using pythainer.
 """
