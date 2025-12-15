@@ -554,19 +554,17 @@ class UbuntuDockerBuilder(DockerBuilder):
     def remove_user_if_uid_exists(
         self,
         uid: str,
-        gid: str,
     ) -> None:
         """
-        Removes a system user by its UID and GID if it exists within the Docker environment.
+        Removes a system user by its UID if it exists within the Docker environment.
 
         Parameters:
             uid (str): The user ID to potentially remove.
-            gid (str): The group ID associated with the user.
         """
-        self.desc(f"Remove user with uid:gid={uid}:{gid} if it already exists.")
+        self.desc(f"Remove user with uid={uid} if it already exists.")
         command = (
-            f"grep :{uid}:{gid}: /etc/passwd && \\\n"
-            f"    (grep :{uid}:{gid}: /etc/passwd | \\\n"
+            f"grep :{uid}: /etc/passwd && \\\n"
+            f"    (grep :{uid}: /etc/passwd | \\\n"
             f"     cut -d ':' -f 1 | \\\n"
             f"     xargs userdel --remove) || \\\n"
             f"    true"
@@ -584,7 +582,7 @@ class UbuntuDockerBuilder(DockerBuilder):
         self.arg(name="UID", value="1000")  # default value if UID not provided
         self.arg(name="GID", value="1000")  # default value if GID not provided
         self.remove_group_if_gid_exists(gid="${GID}")
-        self.remove_user_if_uid_exists(uid="${UID}", gid="${GID}")
+        self.remove_user_if_uid_exists(uid="${UID}")
         self.run(command="groupadd -g ${GID} ${USER_NAME}")
         self.run(
             command='adduser --disabled-password --uid $UID --gid $GID --gecos "" ${USER_NAME}'
