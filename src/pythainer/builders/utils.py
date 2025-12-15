@@ -309,6 +309,6 @@ def project_deb_download_install(
         if extra_commands_after_install is not None:
             commands.extend(extra_commands_after_install)
     if cleanup:
-        commands.append(f"rm -f {Path (workdir) / package_name}")
+        commands.append(f"rm -f {Path(workdir) / package_name}")
 
     builder.run_multiple(commands=commands)
