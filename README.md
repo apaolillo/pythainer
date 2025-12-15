@@ -29,57 +29,6 @@ of your application code.
 
 ---
 
-## Why Pythainer?
-
-Docker is an excellent packaging and distribution format, but its build
-language is deliberately minimal. A Dockerfile is a linear script: no
-functions, no loops, no conditionals beyond shell tricks. That’s fine for
-small images, yet it becomes a constraint when you’re trying to assemble
-**reusable, research-grade environments** that must be composed, parameterized,
-and maintained over time.
-
-Two issues follow from this. First, **composition is not a first-class idea**
-in Docker. You cannot "merge" two existing images—say, the community ROS 2
-image and an NVIDIA CUDA image—and get a combined environment. The usual
-workaround is to start from one base and then partially re-implement the other,
-or attempt a multi-stage build that requires you to know exactly which files to
-copy, where they live, which runtime artifacts are safe to omit, and the
-precise environment variables they rely on (e.g., `PATH`, `LD_LIBRARY_PATH`,
-`PKG_CONFIG_PATH`, `ROS_DISTRO`, `CUDA_HOME`). This quickly erodes reuse:
-every project rediscovers the same steps, and any fix must be repeated in many
-places.
-
-Second, **runtime concerns** are often entangled with application code and
-shell scripts. Real projects need non-root users, persistent mounts, access to
-GPUs, GUI forwarding (X11/Wayland), devices, and project-specific environment
-variables. The resulting `docker run` commands grow long and fragile, are
-copied across repositories, and drift as requirements change. In fast-moving
-research, this duplication is costly.
-
-**Pythainer** raises the level of abstraction while still targeting Docker as
-the execution engine. Instead of hand-authoring Dockerfiles, you describe
-images with small, testable **builders**: Python classes and functions that can
-use conditionals, loops, parameters, and ordinary refactoring. Builders can be
-**composed** into larger units (e.g., ROS 2 + CUDA + QEMU), encouraging teams
-to factor out common recipes for important toolchains (e.g., LLVM, Vulkan,
-OpenCL, OpenCV, ...) and reuse them across projects. Pythainer then renders
-deterministic Dockerfiles and builds the resulting images, so what you ship is
-transparent and reproducible.
-
-On the runtime side, **runners** capture operational policy—users and groups,
-mounts, GPU and GUI setup, device access—so that launching a container is a
-matter of selecting the right presets rather than rewriting long shell
-commands. This keeps project code clean and centralizes changes: update a
-runner once, and every consumer benefits.
-
-In short, Docker gives you the substrate; **Pythainer gives you the
-programming model**. By separating environment construction (builders) from
-execution policy (runners), and by making composition a first-class capability,
-it becomes practical to define stable, shareable environments for experiments
-and to reproduce them reliably across machines, projects, and time.
-
----
-
 ## In short
 
 Writing and maintaining Dockerfiles for research projects gets messy fast:
@@ -108,16 +57,17 @@ bespoke run scripts for GPUs/GUI. Pythainer gives you:
 **Install Docker**
 
 Follow the official instructions:
-<https://docs.docker.com/engine/install/>
+[https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
 
 **Install NVIDIA container toolkit (optional)**
 
 Follow NVIDIA’s guide:
-<https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>
+[https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
 **Install the pythainer package**
 
 From PyPI:
+
 ```bash
 pip3 install pythainer
 ```
@@ -163,6 +113,76 @@ python quickstart.py
 
 You should see a user-space Ubuntu terminal with the desired packages. You can
 inspect the generated Dockerfile at `/tmp/Dockerfile` (default path).
+
+---
+
+## How pythainer works: from builders to Dockerfiles
+
+Pythainer does not replace Dockerfiles. Instead, it provides a **programmable
+front-end** that *accumulates Docker instructions* and **deterministically
+renders** them into a standard Dockerfile.
+
+Conceptually, the workflow is as follows:
+
+1. **Builders** accumulate an ordered list of Docker instructions
+   (e.g., `FROM`, `RUN`, `ENV`, `USER`, `WORKDIR`).
+2. This internal instruction list is **rendered deterministically** into a
+   human-readable Dockerfile.
+3. The Dockerfile is built using the Docker engine.
+4. **Runners** assemble the corresponding `docker run` invocation (GPU, GUI,
+   mounts, users) without modifying the image itself.
+
+This separation makes it possible to:
+
+- inspect and review generated Dockerfiles,
+- compose and reuse build logic safely,
+- keep execution policy (GPU/GUI/devices) out of image construction.
+
+After running the quick start script, the generated Dockerfile is written to
+`/tmp/Dockerfile` by default. Below is an excerpt of the *actual* Dockerfile
+generated by `quickstart.py` (essential parts):
+
+```dockerfile
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# General packages & tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        apt-transport-https \
+        build-essential \
+        ca-certificates \
+        curl \
+        git \
+        sudo \
+        tmux \
+        vim \
+        wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+ARG USER_NAME=user
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} ${USER_NAME}
+RUN adduser --disabled-password --uid $UID --gid $GID --gecos "" ${USER_NAME}
+RUN adduser ${USER_NAME} sudo
+
+# [...] (steps omitted)
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        tmux \
+        vim \
+    && rm -rf /var/lib/apt/lists/*
+USER ${USER_NAME}
+WORKDIR /home/${USER_NAME}/workspace
+```
+
+Each builder method contributes one or more Dockerfile blocks in a predictable
+order. The resulting file can be inspected, versioned, and audited like any
+hand-written Dockerfile before or after building the image.
 
 ---
 
@@ -329,6 +349,57 @@ Or run all tests:
 ```bash
 pytest .
 ```
+
+---
+
+## Why Pythainer?
+
+Docker is an excellent packaging and distribution format, but its build
+language is deliberately minimal. A Dockerfile is a linear script: no
+functions, no loops, no conditionals beyond shell tricks. That’s fine for
+small images, yet it becomes a constraint when you’re trying to assemble
+**reusable, research-grade environments** that must be composed, parameterized,
+and maintained over time.
+
+Two issues follow from this. First, **composition is not a first-class idea**
+in Docker. You cannot "merge" two existing images—say, the community ROS 2
+image and an NVIDIA CUDA image—and get a combined environment. The usual
+workaround is to start from one base and then partially re-implement the other,
+or attempt a multi-stage build that requires you to know exactly which files to
+copy, where they live, which runtime artifacts are safe to omit, and the
+precise environment variables they rely on (e.g., `PATH`, `LD_LIBRARY_PATH`,
+`PKG_CONFIG_PATH`, `ROS_DISTRO`, `CUDA_HOME`). This quickly erodes reuse:
+every project rediscovers the same steps, and any fix must be repeated in many
+places.
+
+Second, **runtime concerns** are often entangled with application code and
+shell scripts. Real projects need non-root users, persistent mounts, access to
+GPUs, GUI forwarding (X11/Wayland), devices, and project-specific environment
+variables. The resulting `docker run` commands grow long and fragile, are
+copied across repositories, and drift as requirements change. In fast-moving
+research, this duplication is costly.
+
+**Pythainer** raises the level of abstraction while still targeting Docker as
+the execution engine. Instead of hand-authoring Dockerfiles, you describe
+images with small, testable **builders**: Python classes and functions that can
+use conditionals, loops, parameters, and ordinary refactoring. Builders can be
+**composed** into larger units (e.g., ROS 2 + CUDA + QEMU), encouraging teams
+to factor out common recipes for important toolchains (e.g., LLVM, Vulkan,
+OpenCL, OpenCV, ...) and reuse them across projects. Pythainer then renders
+deterministic Dockerfiles and builds the resulting images, so what you ship is
+transparent and reproducible.
+
+On the runtime side, **runners** capture operational policy—users and groups,
+mounts, GPU and GUI setup, device access—so that launching a container is a
+matter of selecting the right presets rather than rewriting long shell
+commands. This keeps project code clean and centralizes changes: update a
+runner once, and every consumer benefits.
+
+In short, Docker gives you the substrate; **Pythainer gives you the
+programming model**. By separating environment construction (builders) from
+execution policy (runners), and by making composition a first-class capability,
+it becomes practical to define stable, shareable environments for experiments
+and to reproduce them reliably across machines, projects, and time.
 
 ---
 
