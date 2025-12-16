@@ -7,12 +7,14 @@ handling commands like package installation, environment variable setting, and u
 tailored specifically for Docker environments.
 """
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Dict, Iterable, List
 
 from pythainer.builders.cmds import (
     AddPkgDockerBuildCommand,
+    CopyDockerBuildCommand,
     DockerBuildCommand,
     StrDockerBuildCommand,
 )
@@ -246,16 +248,16 @@ class PartialDockerBuilder:
         """
         self._build_commands.append(AddPkgDockerBuildCommand(packages=packages))
 
-    def copy(self, filename: PathType, destination: PathType) -> None:
+    def copy(self, source_path: Path, destination_path: Path) -> None:
         """
         Copies a file to the docker container
 
         Parameters:
-            filename (PathType): The file to copy to the container.
-            destination (PathType): The location to place the file within the Docker container.
+            source_path (Path): The file or folder to copy to the container.
+            destination_path (Path): The location to place the
+                file or folder within the Docker container.
         """
-        cmd = f"COPY {filename} {destination}"
-        self._build_commands.append(StrDockerBuildCommand(cmd))
+        self._build_commands.append(CopyDockerBuildCommand(source_path, destination_path))
 
 
 class DockerBuilder(PartialDockerBuilder):
@@ -427,18 +429,24 @@ class DockerBuilder(PartialDockerBuilder):
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
             docker_context (PathType): Optional path to save the Docker context used for the build.
         """
+
         main_dir = Path("/tmp/pythainer/docker/")
         mkdir(main_dir)
         with tempfile.TemporaryDirectory(
             prefix="/tmp/pythainer/docker/docker-build-",
             dir=main_dir,
         ) as temp_dir:
+
             temp_path = Path(temp_dir)
             dockerfile_path = (temp_path / "Dockerfile").resolve()
             dockerfile_paths = [dockerfile_path] + (
                 [dockerfile_savepath] if dockerfile_savepath else []
             )
             self.generate_dockerfile(dockerfile_paths=dockerfile_paths)
+
+            data_path = main_dir / "data"
+            mkdir(data_path)
+            shutil.move(data_path, temp_path)
 
             command = self.get_build_commands(
                 dockerfile_path=dockerfile_path,
