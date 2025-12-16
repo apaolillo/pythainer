@@ -75,7 +75,8 @@ class StrDockerBuildCommand(DockerBuildCommand):
 
 class CopyDockerBuildCommand(DockerBuildCommand):
     """
-    Represents the command string to copy data from the host system to the docker container at build time.
+    Represents the command string to copy data from the host system to
+    the docker container at build time.
     """
 
     def __init__(self, source_path: Path, destination_path: Path) -> None:

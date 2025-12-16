@@ -254,7 +254,8 @@ class PartialDockerBuilder:
 
         Parameters:
             source_path (Path): The file or folder to copy to the container.
-            destination_path (Path): The location to place the file or folder within the Docker container.
+            destination_path (Path): The location to place the
+                file or folder within the Docker container.
         """
         self._build_commands.append(CopyDockerBuildCommand(source_path, destination_path))
 
