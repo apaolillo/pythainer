@@ -445,7 +445,7 @@ class DockerBuilder(PartialDockerBuilder):
             self.generate_dockerfile(dockerfile_paths=dockerfile_paths)
 
             data_path = main_dir / "data"
-
+            mkdir(data_path)
             shutil.move(data_path, temp_path)
 
             command = self.get_build_commands(
