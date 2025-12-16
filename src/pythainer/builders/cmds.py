@@ -91,7 +91,6 @@ class CopyDockerBuildCommand(DockerBuildCommand):
         self._source_path = source_path.resolve()
         self._destination_path = destination_path
 
-    # pylint: disable=arguments-differ
     def get_str_for_dockerfile(
         self,
         *args,
