@@ -226,9 +226,65 @@ This keeps each concern small, testable, and reusable.
 
 ---
 
+## A minimal example of builder composition
+
+The examples above show how to *use* existing builders. To understand how
+composition works in practice, it helps to look at a very small, custom
+**partial builder**.
+
+A partial builder is simply a function that returns a `PartialDockerBuilder`
+with a few Docker instructions attached.
+
+For example, here is a minimal "hello world" builder:
+
+```python
+from pythainer.builders import PartialDockerBuilder
+
+def hello_builder() -> PartialDockerBuilder:
+    """
+    A minimal partial builder that adds a single RUN step.
+
+    Returns:
+        PartialDockerBuilder: Docker builder fragment adding a "hello world".
+    """
+    b = PartialDockerBuilder()
+    b.run("echo 'hello world!'")
+    return b
+```
+
+This builder does not define a base image or users by itself; it only contributes
+one Dockerfile instruction. It can be **composed** into a larger image:
+
+```python
+from pythainer.examples.builders import get_user_builder
+
+image = "hello-example"
+builder = get_user_builder(
+    image_name=image,
+    base_ubuntu_image="ubuntu:24.04",
+)
+
+builder |= hello_builder()
+builder.build()
+```
+
+Conceptually, this is equivalent to appending the `RUN echo 'hello world!'`
+instruction to the Dockerfile produced by `get_user_builder`.
+
+This pattern is one of the core ideas behind pythainer:
+small, focused builders capture one concern and can be reused and combined
+to form larger environments.
+
+Custom partial builders are useful when you want to factor out a recurring
+build step (e.g., installing a tool, adding a repository, setting environment
+variables) and reuse it across multiple images without duplicating Dockerfile
+logic.
+
+---
+
 ## Clean runtime: GPUs, GUIs, volumes
 
-Stop rewriting `docker run` flags in every project—use **runners**:
+Stop rewriting `docker run` flags in every project. Instead, use **runners**:
 
 ```python
 from pythainer.examples.runners import gpu_runner, gui_runner
@@ -247,6 +303,61 @@ runner.run()
 
 > GPU support requires NVIDIA drivers + `nvidia-container-toolkit` on the host.
 > Try `xeyes` (GUI) and `nvidia-smi` (GPU) from inside the container.
+
+---
+
+## A minimal example of runner composition
+
+Runners play the same role for *execution policy* as builders do for *image
+construction*. Just like builders, runners are composable building blocks. A
+runner is simply a small object that contributes `docker run` flags (environment
+variables, volume mounts, devices, and other options). You can write your own
+runners as plain Python functions that return a `DockerRunner`.
+
+For example, here is a minimal "hello runner" that forwards an environment variable and
+mounts a host directory into the container:
+
+```python
+from pathlib import Path
+from pythainer.runners import DockerRunner
+
+def hello_runner() -> DockerRunner:
+    """
+    A minimal runner that demonstrates a custom runtime policy.
+
+    Returns:
+        DockerRunner: Runner fragment (env + volume mount).
+    """
+    return DockerRunner(
+        environment_variables={"PYTHAINER_HELLO": "1"},
+        volumes={str(Path(".").resolve()): "/workspace"},
+        devices=[],
+        other_options=[],
+    )
+```
+
+You can compose it exactly like the built-in GPU/GUI runners:
+
+```python
+from pythainer.examples.runners import gpu_runner, gui_runner
+from pythainer.runners import ConcreteDockerRunner
+
+runner = ConcreteDockerRunner(image=image, name=image, workdir="/workspace")
+
+runner |= gpu_runner()
+runner |= gui_runner()
+runner |= hello_runner()
+
+runner.run()
+```
+
+Conceptually, each composed runner contributes additional `docker run` settings. This
+keeps execution policy (GPU/GUI/devices/mounts) reusable and separate from the image
+construction steps defined by builders.
+
+Custom runners are useful when runtime requirements recur across projects
+(e.g., specific device access, environment variables, or mounts) and you want
+to centralize and reuse that policy instead of duplicating `docker run` flags.
 
 ---
 
