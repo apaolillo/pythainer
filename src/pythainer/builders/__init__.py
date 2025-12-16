@@ -10,7 +10,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from pythainer.builders.cmds import (
     AddPkgDockerBuildCommand,
@@ -18,6 +18,7 @@ from pythainer.builders.cmds import (
     DockerBuildCommand,
     StrDockerBuildCommand,
 )
+from pythainer.builders.commands.run.mounts import RunMount
 from pythainer.runners import ConcreteDockerRunner
 from pythainer.sysutils import (
     PathType,
@@ -63,6 +64,7 @@ class PartialDockerBuilder:
         Initializes a PartialDockerBuilder with an empty list of build commands.
         """
         self._build_commands: List[DockerBuildCommand] = []
+        self._needs_ssh: bool = False
 
     def __or__(self, other: "PartialDockerBuilder") -> "PartialDockerBuilder":
         """
@@ -102,6 +104,7 @@ class PartialDockerBuilder:
         """
         # pylint: disable=protected-access
         self._build_commands.extend(other._build_commands)
+        self._needs_ssh = self._needs_ssh or other._needs_ssh
 
     def space(self) -> None:
         """
@@ -151,14 +154,31 @@ class PartialDockerBuilder:
         cmd = f"ENV {name}={value}"
         self._build_commands.append(StrDockerBuildCommand(cmd))
 
-    def run(self, command: str) -> None:
+    def run(
+        self,
+        command: str,
+        mounts: Iterable[RunMount] | None = None,
+    ) -> None:
         """
         Adds a RUN instruction to the Dockerfile.
 
-        Parameters:
-            command (str): The command to run.
+        Args:
+            command: The shell command to run in the build stage.
+            mounts: Optional iterable of RunMount specifications to be
+                applied as `--mount=...` flags.
         """
-        cmd = f"RUN {command}"
+        if mounts:
+            mount_flags = " ".join(m.to_flag() for m in mounts)
+            cmd_with_mounts = f"{mount_flags} \\\n    {command}"
+
+            # Mark that this build requires SSH support if any ssh mount is used
+            if any(m.mount_type == "ssh" for m in mounts):
+                self._needs_ssh = True
+        else:
+            cmd_with_mounts = f"{command}"
+
+        cmd = f"RUN {cmd_with_mounts}"
+
         self._build_commands.append(StrDockerBuildCommand(cmd))
 
     def entrypoint(self, list_command: List[str]) -> None:
@@ -175,15 +195,21 @@ class PartialDockerBuilder:
         cmd = f"ENTRYPOINT {head}{body}{tail}"
         self._build_commands.append(StrDockerBuildCommand(cmd))
 
-    def run_multiple(self, commands: List[str]) -> None:
+    def run_multiple(
+        self,
+        commands: List[str],
+        mounts: Iterable[RunMount] | None = None,
+    ) -> None:
         """
         Adds multiple commands to be run in a single RUN instruction in the Dockerfile.
 
         Parameters:
             commands (List[str]): The commands to run.
+            mounts: Optional iterable of RunMount specifications to be
+                applied as `--mount=...` flags.
         """
         command = " && \\\n    ".join(commands)
-        self.run(command=command)
+        self.run(command=command, mounts=mounts)
 
     def user(self, name: str = "") -> None:
         """
@@ -314,15 +340,25 @@ class DockerBuilder(PartialDockerBuilder):
             List[str]: The complete Docker build command as a list of strings.
         """
         build_args = []
-        if uid is not None:
+        if uid is not None and uid and "0" != uid:
             build_args.append(f"--build-arg=UID={uid}")
-        if gid is not None:
+        if gid is not None and gid and "0" != gid:
             build_args.append(f"--build-arg=GID={gid}")
 
         docker_path = shell_out(
             command=["which", "docker"],
             output_is_log=False,
         )
+
+        other_args = []
+
+        # Only add --ssh if the Dockerfile actually uses ssh mounts
+        if self._needs_ssh:
+            ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK")
+            if ssh_auth_sock:
+                other_args += ["--ssh", f"default={ssh_auth_sock}"]
+            else:
+                raise RuntimeError("needs_ssh is True but SSH_AUTH_SOCK is not set.")
 
         command = (
             [
@@ -332,6 +368,7 @@ class DockerBuilder(PartialDockerBuilder):
                 f"{dockerfile_path}",
             ]
             + build_args
+            + other_args
             + [
                 f"--tag={self._tag}",
                 f"{docker_build_dir}",
@@ -524,19 +561,17 @@ class UbuntuDockerBuilder(DockerBuilder):
     def remove_user_if_uid_exists(
         self,
         uid: str,
-        gid: str,
     ) -> None:
         """
-        Removes a system user by its UID and GID if it exists within the Docker environment.
+        Removes a system user by its UID if it exists within the Docker environment.
 
         Parameters:
             uid (str): The user ID to potentially remove.
-            gid (str): The group ID associated with the user.
         """
-        self.desc(f"Remove user with uid:gid={uid}:{gid} if it already exists.")
+        self.desc(f"Remove user with uid={uid} if it already exists.")
         command = (
-            f"grep :{uid}:{gid}: /etc/passwd && \\\n"
-            f"    (grep :{uid}:{gid}: /etc/passwd | \\\n"
+            f"grep :{uid}: /etc/passwd && \\\n"
+            f"    (grep :{uid}: /etc/passwd | \\\n"
             f"     cut -d ':' -f 1 | \\\n"
             f"     xargs userdel --remove) || \\\n"
             f"    true"
@@ -551,10 +586,10 @@ class UbuntuDockerBuilder(DockerBuilder):
             username (str): The username of the new user.
         """
         self.arg(name="USER_NAME", value=username)
-        self.arg(name="UID")
-        self.arg(name="GID")
+        self.arg(name="UID", value="1000")  # default value if UID not provided
+        self.arg(name="GID", value="1000")  # default value if GID not provided
         self.remove_group_if_gid_exists(gid="${GID}")
-        self.remove_user_if_uid_exists(uid="${UID}", gid="${GID}")
+        self.remove_user_if_uid_exists(uid="${UID}")
         self.run(command="groupadd -g ${GID} ${USER_NAME}")
         self.run(
             command='adduser --disabled-password --uid $UID --gid $GID --gecos "" ${USER_NAME}'

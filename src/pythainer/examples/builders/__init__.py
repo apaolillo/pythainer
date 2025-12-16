@@ -241,6 +241,63 @@ def vulkan_builder() -> PartialDockerBuilder:
     return builder
 
 
+def vtune_builder(
+    lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
+) -> PartialDockerBuilder:
+    """
+    Configures a Docker builder for VTune.
+    Installs necessary VTune packages and prepares the environment variables.
+
+    Returns:
+        PartialDockerBuilder: A Docker builder ready to use the Intel VTune profiler.
+    """
+
+    builder = PartialDockerBuilder()
+    builder.space()
+
+    builder.desc("Required for Intel VTune")
+    builder.root()
+    builder.add_packages(
+        packages=[
+            "libnss3-dev",
+            "libgdk-pixbuf2.0-dev",
+            "libgtk-3-dev",
+            "libxss-dev",
+            "libasound2",
+            "xdg-utils",
+            "kmod",
+        ]
+    )
+
+    builder.user()
+    builder.workdir(path=lib_dir)
+    builder.run_multiple(
+        [
+            "wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB",
+            "sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB",
+            "rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB",
+            (
+                'echo "deb https://apt.repos.intel.com/oneapi all main"'
+                " | sudo tee /etc/apt/sources.list.d/oneAPI.list"
+            ),
+        ]
+    )
+
+    builder.root()
+    builder.add_packages(packages=["intel-oneapi-vtune"])
+
+    builder.user()
+
+    # Add the script that sets up the env variables for VTune to the bashrc,
+    # so they are present for the user.
+    file_to_source = "/opt/intel/oneapi/vtune/latest/env/vars.sh"
+    builder.run(command=f'echo "[ -e "{file_to_source}" ] && source {file_to_source}" >> ~/.bashrc')
+
+    builder.space()
+
+    return builder
+
+
 def clspv_builder() -> PartialDockerBuilder:
     """
     Prepares a Docker builder specifically for building and installing CLSPV,
@@ -368,9 +425,9 @@ def qemu_dependencies() -> List[str]:
 
 def qemu_builder(
     version: str = "10.0.2",
-    targets: Tuple[str] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
-    disables: Tuple[str] = ("xen",),
-    enables: Tuple[str] = ("sdl", "gtk", "slirp"),
+    targets: Tuple[str, ...] = ("aarch64-linux-user", "aarch64-softmmu", "riscv64-softmmu"),
+    disables: Tuple[str, ...] = ("xen",),
+    enables: Tuple[str, ...] = ("sdl", "gtk", "slirp"),
     cleanup: bool = False,
 ) -> PartialDockerBuilder:
     """
