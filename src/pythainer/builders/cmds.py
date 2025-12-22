@@ -9,11 +9,7 @@ The module facilitates the dynamic generation of Dockerfile content based on dif
 and package managers.
 """
 
-import shutil
 from pathlib import Path
-from typing import List
-
-from pythainer.sysutils import mkdir
 
 
 class DockerBuildCommand:
@@ -75,21 +71,45 @@ class StrDockerBuildCommand(DockerBuildCommand):
 
 class CopyDockerBuildCommand(DockerBuildCommand):
     """
-    Represents the command string to copy data from the host system to
-    the docker container at build time.
+    Represents a Dockerfile COPY instruction.
+
+    Notes:
+        - Sources are paths *inside the build context* (relative).
+        - Destination is a path *inside the image* (absolute or relative).
+        - If multiple sources are provided, destination must be treated as a directory.
     """
 
-    def __init__(self, source_path: Path, destination_path: Path) -> None:
+    def __init__(
+        self,
+        sources: list[Path],
+        destination: Path,
+        chown: str | None = None,
+        chmod: str | None = None,
+    ) -> None:
         """
-        Initializes the CopyDockerBuildCommand with a a source and destination path.
+        Initializes the COPY command.
 
         Parameters:
-            source_path (Path): Path of folder or file to copy to container
-            destination_path (Path): Path to copy the file or folder to
+            sources: One or more source paths. These should refer to paths within the
+                build context. These are the staged paths.
+            destination: Destination path in the image (container filesystem).
+            chown: Optional ownership for copied files (Dockerfile: COPY --chown=...).
+            chmod: Optional mode for copied files (Dockerfile: COPY --chmod=...).
+
+        Raises:
+            ValueError: If sources is empty.
         """
         super().__init__()
-        self._source_path = source_path.resolve()
-        self._destination_path = destination_path
+
+        srcs = tuple(Path(s) for s in sources)
+        if not srcs:
+            raise ValueError("COPY requires at least one source path")
+
+        self._sources: tuple[Path, ...] = srcs
+        self._destination: Path = Path(destination)
+
+        self._chown = chown
+        self._chmod = chmod
 
     def get_str_for_dockerfile(
         self,
@@ -97,32 +117,27 @@ class CopyDockerBuildCommand(DockerBuildCommand):
         **kwargs,
     ) -> str:
         """
-        Generates a Dockerfile string to move files and folders.
+        Generate the Dockerfile `COPY` instruction string.
+
+        This method is pure: it does not read from or write to the host filesystem,
+        and it does not perform any staging. All sources must already refer to
+        paths *inside the build context* (i.e., context-relative paths prepared
+        by the builder).
 
         Returns:
-            str: A Dockerfile command string for moving files and folders.
+            str: A Dockerfile `COPY` command line.
         """
+        flags: list[str] = []
+        if self._chown is not None:
+            flags.append(f"--chown={self._chown}")
+        if self._chmod is not None:
+            flags.append(f"--chmod={self._chmod}")
 
-        data_path = Path("/tmp/pythainer/docker/data")
-        resulting_path = data_path / self._source_path.relative_to("/")
-        relative_path = Path("data") / self._source_path.relative_to("/")
-        mkdir(data_path)
+        flags_str = (" " + " ".join(flags)) if flags else ""
+        sources_str = " ".join(str(s) for s in self._sources)
 
-        print(data_path)
-
-        if self._source_path.is_file():
-            mkdir(resulting_path.parent)
-            shutil.copyfile(self._source_path, resulting_path)
-        elif self._source_path.is_dir():
-            shutil.copytree(self._source_path, resulting_path, dirs_exist_ok=True)
-        else:
-            raise FileExistsError(
-                f"{self._source_path} is not a valid target to copy into the docker container"
-            )
-
-        cmd = f"COPY --chown=${{USER_NAME}} {relative_path} {self._destination_path}"
-
-        return cmd
+        result = f"COPY{flags_str} {sources_str} {self._destination}"
+        return result
 
 
 class AddPkgDockerBuildCommand(DockerBuildCommand):
@@ -132,7 +147,7 @@ class AddPkgDockerBuildCommand(DockerBuildCommand):
 
     def __init__(
         self,
-        packages: List[str],
+        packages: list[str],
     ) -> None:
         """
         Initializes the AddPkgDockerBuildCommand with a list of package names.
@@ -170,7 +185,7 @@ class AddPkgDockerBuildCommand(DockerBuildCommand):
                 raise ValueError(f"Unsupported package manager: {pkg_manager}")
 
 
-def _add_pkg_apt(packages: List[str]) -> str:
+def _add_pkg_apt(packages: list[str]) -> str:
     """
     Helper function to format an apt-get command to install specified packages.
 

@@ -18,3 +18,7 @@
 
 - CUDA builder
 - ROS 2 builder
+
+## Chore
+
+- Move license to VUB.

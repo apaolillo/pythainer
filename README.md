@@ -416,6 +416,41 @@ Browse the examples and adapt them:
 
 ---
 
+## Build context and context_root (COPY sources)
+
+Docker `COPY` reads files from the *build context*: a directory tree sent to
+`docker build`. Pythainer builds this context automatically by staging the host
+paths you reference in `builder.copy(...)`.
+
+By default, if you do not specify a context root, Pythainer stages each copied
+host path by basename only. This is convenient for simple cases, but it can
+cause collisions if you copy multiple files that share the same filename
+(e.g., `a/file.txt` and `b/file.txt`).
+
+To make COPY sources unambiguous, pass `context_root=...` when creating a
+`PartialDockerBuilder`. When `context_root` is set, every host path added to the
+context is interpreted relative to that root, and the same relative path is
+used inside the Docker build context.
+
+Example:
+
+```python
+root = Path("/tmp/pythainer/test")
+pb = PartialDockerBuilder(context_root=root)
+
+pb.copy(source=root / "file.txt", destination=Path("/dst/file1.txt"))
+pb.copy(source=root / "nested/file.txt", destination=Path("/dst/file2.txt"))
+````
+
+This stages the files in the build context as:
+
+* `file.txt`
+* `nested/file.txt`
+
+and the generated Dockerfile COPY sources refer to those context-relative paths.
+
+---
+
 ## High-level source organization
 
 The source code of this repository is organized as follows:

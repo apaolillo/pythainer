@@ -7,7 +7,6 @@ handling commands like package installation, environment variable setting, and u
 tailored specifically for Docker environments.
 """
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Dict, Iterable, List
@@ -19,6 +18,7 @@ from pythainer.builders.cmds import (
     StrDockerBuildCommand,
 )
 from pythainer.builders.commands.run.mounts import RunMount
+from pythainer.builders.contexts import BuildContext
 from pythainer.runners import ConcreteDockerRunner
 from pythainer.sysutils import (
     PathType,
@@ -55,15 +55,41 @@ def render_dockerfile_content(
 
 class PartialDockerBuilder:
     """
-    A class to facilitate the building of partial Docker configurations that can be extended or
-    merged.
+    Collect a reusable fragment of Docker build steps.
+
+    A PartialDockerBuilder records build commands (RUN, COPY, etc.) that can be
+    merged into a full builder later. It also maintains a Docker build context:
+    the set of host files/directories that must be staged and sent to `docker build`.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        context_root: PathType | None = None,
+    ) -> None:
         """
-        Initializes a PartialDockerBuilder with an empty list of build commands.
+        Create an empty partial builder.
+
+        Args:
+            context_root:
+                Optional directory to treat as the root of the Docker build context.
+
+                When context_root is set, host paths given to COPY are interpreted
+                relative to this directory, and that relative path is what appears
+                in the build context and in the generated Dockerfile.
+
+                Example (context_root preserves structure):
+                    context_root = /tmp/project
+                    host path:    /tmp/project/nested/file.txt
+                    context path: nested/file.txt
+
+                When context_root is None, Pythainer stages host paths by basename
+                only. This is convenient for simple cases but can cause collisions:
+                two different host paths like `/a/file.txt` and `/b/file.txt` both
+                map to `file.txt` in the build context, and adding both raises
+                ValueError.
         """
         self._build_commands: List[DockerBuildCommand] = []
+        self._context: BuildContext = BuildContext(context_root=context_root)
         self._needs_ssh: bool = False
 
     def __or__(self, other: "PartialDockerBuilder") -> "PartialDockerBuilder":
@@ -104,6 +130,7 @@ class PartialDockerBuilder:
         """
         # pylint: disable=protected-access
         self._build_commands.extend(other._build_commands)
+        self._context.extend(other._context)
         self._needs_ssh = self._needs_ssh or other._needs_ssh
 
     def space(self) -> None:
@@ -248,16 +275,57 @@ class PartialDockerBuilder:
         """
         self._build_commands.append(AddPkgDockerBuildCommand(packages=packages))
 
-    def copy(self, source_path: Path, destination_path: Path) -> None:
-        """
-        Copies a file to the docker container
+    def copy(
+        self,
+        source: Path | list[Path],
+        destination: Path,
+        chown: str | None = None,
+        chmod: str | None = None,
+    ) -> None:
+        """Add a Dockerfile COPY instruction.
 
-        Parameters:
-            source_path (Path): The file or folder to copy to the container.
-            destination_path (Path): The location to place the
-                file or folder within the Docker container.
+        Args:
+            source: A single host path or an iterable of host paths (file or dir).
+            destination: Container destination path.
+            chown: Optional ownership, forwarded to Dockerfile `COPY --chown=...`.
+            chmod: Optional permissions, forwarded to Dockerfile `COPY --chmod=...`.
+
+        Raises:
+            ValueError: If source list is empty or destination is invalid for multi-source copy.
+
+        Notes:
+            Docker COPY reads from the *build context* (a directory tree passed to
+            `docker build`). Pythainer stages host paths into this context and the
+            Dockerfile COPY instruction refers to context-relative paths.
+
+            The mapping from host paths to context paths depends on `context_root`:
+            - If context_root is None, each host path is staged by basename only.
+              This is convenient but can collide if multiple sources share the same name.
+            - If context_root is set, each host path is staged using its path
+              relative to context_root (directory structure is preserved).
+
+            Example:
+                root = Path("/tmp/project")
+                pb = PartialDockerBuilder(context_root=root)
+                pb.copy(source=root / "a/file.txt", destination=Path("/dst/a.txt"))
+                pb.copy(source=root / "b/file.txt", destination=Path("/dst/b.txt"))
         """
-        self._build_commands.append(CopyDockerBuildCommand(source_path, destination_path))
+        sources = (source,) if isinstance(source, Path) else tuple(source)
+        if not sources:
+            raise ValueError("copy(): at least one source path is required")
+
+        ctx_paths = [
+            self._context.add_context_entry(host_path=source_path) for source_path in sources
+        ]
+
+        self._build_commands.append(
+            CopyDockerBuildCommand(
+                sources=ctx_paths,
+                destination=destination,
+                chown=chown,
+                chmod=chmod,
+            )
+        )
 
 
 class DockerBuilder(PartialDockerBuilder):
@@ -429,14 +497,12 @@ class DockerBuilder(PartialDockerBuilder):
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
             docker_context (PathType): Optional path to save the Docker context used for the build.
         """
-
         main_dir = Path("/tmp/pythainer/docker/")
         mkdir(main_dir)
         with tempfile.TemporaryDirectory(
             prefix="/tmp/pythainer/docker/docker-build-",
             dir=main_dir,
         ) as temp_dir:
-
             temp_path = Path(temp_dir)
             dockerfile_path = (temp_path / "Dockerfile").resolve()
             dockerfile_paths = [dockerfile_path] + (
@@ -444,13 +510,16 @@ class DockerBuilder(PartialDockerBuilder):
             )
             self.generate_dockerfile(dockerfile_paths=dockerfile_paths)
 
-            data_path = main_dir / "data"
-            mkdir(data_path)
-            shutil.move(data_path, temp_path)
+            if docker_context:
+                context_path = Path(docker_context).resolve()
+            else:
+                context_path = temp_path / "context"
+                context_path.mkdir(parents=True, exist_ok=True)
+                self._context.build(context_path=context_path)
 
             command = self.get_build_commands(
                 dockerfile_path=dockerfile_path,
-                docker_build_dir=Path(docker_context).resolve() if docker_context else temp_path,
+                docker_build_dir=context_path,
                 uid=get_uid(),
                 gid=get_gid(),
             )
@@ -459,7 +528,7 @@ class DockerBuilder(PartialDockerBuilder):
 
             shell_out(
                 command=command,
-                current_dir=temp_path,
+                current_dir=context_path,
                 environment=environment,
                 output_is_log=True,
             )
