@@ -89,7 +89,8 @@ class BuildContext:
         The host path is mapped to a context-relative path. If `context_root`
         was provided at construction time, the context path is computed as the
         path of `host_path` relative to `context_root`. Otherwise, the basename
-        of `host_path` is used.
+        of `host_path` is used. This means collisions can occur when two
+        different host paths share the same filename.
 
         Args:
             host_path: Path to a file or directory on the host filesystem.

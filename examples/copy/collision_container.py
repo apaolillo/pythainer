@@ -30,6 +30,12 @@ What this example does
 
 This pattern is useful when assembling Docker images from multiple reusable
 fragments while keeping build contexts explicit and reproducible.
+
+Notes:
+- Without context_root, COPY sources are staged by basename only, which can
+  collide when multiple host files share the same name.
+- With context_root, host paths become relative to that root inside the Docker
+  build context, so directory structure is preserved and collisions are avoided.
 """
 
 from pathlib import Path

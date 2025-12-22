@@ -55,8 +55,11 @@ def render_dockerfile_content(
 
 class PartialDockerBuilder:
     """
-    A class to facilitate the building of partial Docker configurations that can be extended or
-    merged.
+    Collect a reusable fragment of Docker build steps.
+
+    A PartialDockerBuilder records build commands (RUN, COPY, etc.) that can be
+    merged into a full builder later. It also maintains a Docker build context:
+    the set of host files/directories that must be staged and sent to `docker build`.
     """
 
     def __init__(
@@ -64,7 +67,26 @@ class PartialDockerBuilder:
         context_root: PathType | None = None,
     ) -> None:
         """
-        Initializes a PartialDockerBuilder with an empty list of build commands.
+        Create an empty partial builder.
+
+        Args:
+            context_root:
+                Optional directory to treat as the root of the Docker build context.
+
+                When context_root is set, host paths given to COPY are interpreted
+                relative to this directory, and that relative path is what appears
+                in the build context and in the generated Dockerfile.
+
+                Example (context_root preserves structure):
+                    context_root = /tmp/project
+                    host path:    /tmp/project/nested/file.txt
+                    context path: nested/file.txt
+
+                When context_root is None, Pythainer stages host paths by basename
+                only. This is convenient for simple cases but can cause collisions:
+                two different host paths like `/a/file.txt` and `/b/file.txt` both
+                map to `file.txt` in the build context, and adding both raises
+                ValueError.
         """
         self._build_commands: List[DockerBuildCommand] = []
         self._context: BuildContext = BuildContext(context_root=context_root)
@@ -270,6 +292,23 @@ class PartialDockerBuilder:
 
         Raises:
             ValueError: If source list is empty or destination is invalid for multi-source copy.
+
+        Notes:
+            Docker COPY reads from the *build context* (a directory tree passed to
+            `docker build`). Pythainer stages host paths into this context and the
+            Dockerfile COPY instruction refers to context-relative paths.
+
+            The mapping from host paths to context paths depends on `context_root`:
+            - If context_root is None, each host path is staged by basename only.
+              This is convenient but can collide if multiple sources share the same name.
+            - If context_root is set, each host path is staged using its path
+              relative to context_root (directory structure is preserved).
+
+            Example:
+                root = Path("/tmp/project")
+                pb = PartialDockerBuilder(context_root=root)
+                pb.copy(source=root / "a/file.txt", destination=Path("/dst/a.txt"))
+                pb.copy(source=root / "b/file.txt", destination=Path("/dst/b.txt"))
         """
         sources = (source,) if isinstance(source, Path) else tuple(source)
         if not sources:
