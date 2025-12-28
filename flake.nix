@@ -1,52 +1,56 @@
 {
-  description = "A very basic flake";
+  description = "A pythonic toolkit for composing, managing, and deploying Docker images and containers. ";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    flake-utils.url = "github:numtide/flake-utils";
-    pyproject-nix.url = "github:pyproject-nix/pyproject.nix";
+    dream2nix.url = "github:nix-community/dream2nix";
   };
 
-  outputs = { self, nixpkgs, pyproject-nix, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system : 
-      let 
-        pkgs = import nixpkgs {inherit system;};
+  outputs = {
+    self,
+      nixpkgs,
+      dream2nix,
+  }:
+    let
+      eachSystem = nixpkgs.lib.genAttrs [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
+    in {
 
-	      python = pkgs.python3;
-	      pythonPackages = pkgs.python3Packages;
-        project = pyproject-nix.lib.project.loadRequirementsTxt {
-          projectRoot = ./.;
+      packages = eachSystem (system : {
+        default = dream2nix.lib.evalModules {
+          packageSets.nixpkgs = nixpkgs.legacyPackages.${system};
+          modules = [
+            ./default.nix
+            {
+              paths.projectRoot = ./.; 
+              paths.projectRootFile = "flake.nix"; 
+              paths.package = ./.;
+            }
+          ];
         };
+      });
 
-        pythonEnv =
-          # assert project.validators.validateVersionConstraints { inherit python; } == { };
-          python.withPackages (ps:
-            (project.renderers.withPackages { inherit python; } ps)
-            ++ [ ps.pip ]   # useful for debugging
-          );
-      in
-        {
 
-          packages.pythainer = pythonPackages.buildPythonPackage {
-            pname = "pythainer"; 
-            version= "0.0.5";
+      devShells = eachSystem (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system}; # 
+          pythainer = self.packages.${system}.default;
+          python = pythainer.config.deps.python;
+        in {
+          default = pkgs.mkShell { # 
+            inputsFrom = [pythainer.devShell]; # 
+            packages = [
+              python.pkgs.python-lsp-ruff
+              python.pkgs.pip
 
-            src = ./.;
-
-            
-            propagatedBuildInputs = [
-              pythonEnv
-            ];
-            format = "pyproject";
-  	        build-system = [ pythonPackages.hatchling ];
-          };
-          packages.default = self.packages.${system}.pythainer;
-
-          devShells.default = pkgs.mkShell {
-            packages = with pkgs; [
-              self.packages.${system}.pythainer
+              pkgs.ruff 
+              pkgs.black
             ];
           };
-        }
-    );
+        });
+    };
 }
