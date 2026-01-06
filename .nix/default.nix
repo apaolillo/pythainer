@@ -21,7 +21,7 @@ in {
 
   mkDerivation = {
     src = lib.cleanSourceWith {
-      src = lib.cleanSource ./.;
+      src = lib.cleanSource ./..;
       filter = name : type:
         !(builtins.any (x: x) [
           (lib.hasSuffix ".nix" name) # do not package nix files

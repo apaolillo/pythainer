@@ -24,7 +24,7 @@
         default = dream2nix.lib.evalModules {
           packageSets.nixpkgs = nixpkgs.legacyPackages.${system};
           modules = [
-            ./default.nix
+            .nix/default.nix
             {
               paths.lockFile = ".nix/lock.${system}.json";
               paths.projectRoot = ./.; 
