@@ -1,0 +1,103 @@
+{
+  "fetchPipMetadata": {
+    "sources": {
+      "black": {
+        "is_direct": false,
+        "sha256": "030b9759066a4ee5e5aca28c3c77f9c64789cdd4de8ac1df642c40b708be6171",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/e3/ee/adda3d46d4a9120772fae6de454c8495603c37c4c3b9c60f25b1ab6401fe/black-25.1.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl",
+        "version": "25.1.0"
+      },
+      "click": {
+        "is_direct": false,
+        "sha256": "61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/85/32/10bb5764d90a8eee674e9dc6f4db6a0ab47c8c4d0d83c27f7c39ac415a4d/click-8.2.1-py3-none-any.whl",
+        "version": "8.2.1"
+      },
+      "hatchling": {
+        "is_direct": false,
+        "sha256": "dc48722b68b3f4bbfa3ff618ca07cdea6750e7d03481289ffa8be1521d18a961",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/0d/a5/48cb7efb8b4718b1a4c0c331e3364a3a33f614ff0d6afd2b93ee883d3c47/hatchling-1.28.0-py3-none-any.whl",
+        "version": "1.28.0"
+      },
+      "isort": {
+        "is_direct": false,
+        "sha256": "2dc5d7f65c9678d94c88dfc29161a320eec67328bc97aad576874cb4be1e9615",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/c1/11/114d0a5f4dabbdcedc1125dee0888514c3c3b16d3e9facad87ed96fad97c/isort-6.0.1-py3-none-any.whl",
+        "version": "6.0.1"
+      },
+      "mypy-extensions": {
+        "is_direct": false,
+        "sha256": "1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl",
+        "version": "1.1.0"
+      },
+      "packaging": {
+        "is_direct": false,
+        "sha256": "29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/20/12/38679034af332785aac8774540895e234f4d07f7545804097de4b666afd8/packaging-25.0-py3-none-any.whl",
+        "version": "25.0"
+      },
+      "pathspec": {
+        "is_direct": false,
+        "sha256": "1373719036e64a2b9de3b8ddd9e30afb082a915619f07265ed76d9ae507800ae",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/05/bb/39e6768529454cc2b57e1e2fa0a0a18ff64397a16303270e215a3e03285f/pathspec-1.0.0-py3-none-any.whl",
+        "version": "1.0.0"
+      },
+      "platformdirs": {
+        "is_direct": false,
+        "sha256": "d03afa3963c806a9bed9d5125c8f4cb2fdaf74a55ab60e5d59b3fde758104d31",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/cb/28/3bfe2fa5a7b9c46fe7e13c97bda14c895fb10fa2ebf1d0abb90e0cea7ee1/platformdirs-4.5.1-py3-none-any.whl",
+        "version": "4.5.1"
+      },
+      "pluggy": {
+        "is_direct": false,
+        "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl",
+        "version": "1.6.0"
+      },
+      "trove-classifiers": {
+        "is_direct": false,
+        "sha256": "a8206978ede95937b9959c3aff3eb258bbf7b07dff391ddd4ea7e61f316635ab",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/4f/7e/bc19996fa86cad8801e8ffe6f1bba5836ca0160df76d0410d27432193712/trove_classifiers-2025.12.1.14-py3-none-any.whl",
+        "version": "2025.12.1.14"
+      }
+    },
+    "targets": {
+      "default": {
+        "black": [
+          "click",
+          "mypy-extensions",
+          "packaging",
+          "pathspec",
+          "platformdirs"
+        ],
+        "click": [],
+        "hatchling": [
+          "packaging",
+          "pathspec",
+          "pluggy",
+          "trove-classifiers"
+        ],
+        "isort": [],
+        "mypy-extensions": [],
+        "packaging": [],
+        "pathspec": [],
+        "platformdirs": [],
+        "pluggy": [],
+        "trove-classifiers": []
+      }
+    }
+  },
+  "invalidationHash": "c04d0c16a5bb5a0b8d24ea5f815bd51ce425f1ca22efb2c308f26af4af7690b1"
+}
+
