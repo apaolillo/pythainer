@@ -44,6 +44,7 @@
           default = pkgs.mkShell { # 
             inputsFrom = [pythainer.devShell]; # 
             packages = [
+              pythainer
               python.pkgs.python-lsp-ruff
               python.pkgs.pip
 
