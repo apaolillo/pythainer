@@ -26,6 +26,7 @@
           modules = [
             ./default.nix
             {
+              paths.lockFile = ".nix/lock.${system}.json";
               paths.projectRoot = ./.; 
               paths.projectRootFile = "flake.nix"; 
               paths.package = ./.;
