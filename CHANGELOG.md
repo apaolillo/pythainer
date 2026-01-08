@@ -5,7 +5,26 @@ All notable changes to pythainer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.0.6] - 2026-01-08
+
+### Added
+
+- Docker build enhancements:
+  - Proper `COPY` support via a staged build context (`builder.copy()`).
+  - Support for `RUN --mount` clauses (BuildKit), including SSH agent forwarding.
+- Pythainer examples:
+  - QEMU example updated with `libslirp` dependency for reliable networking.
+  - Minimal integration of Intel VTune within containers.
+- Nix support, enabling reproducible builds and development environments.
+
+### Changed
+
+- User handling during Docker builds:
+  - More robust deletion of users by UID instead of UID:GID.
+  - Avoid passing UID/GID equal to 0 to Docker builds.
+- Documentation:
+  - Significant README improvements following JOSS review feedback.
+  - Added JOSS paper sources under `doc/joss25/`.
 
 ## [0.0.5] - 2025-09-15
 
