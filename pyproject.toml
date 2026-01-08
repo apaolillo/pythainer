@@ -1,6 +1,6 @@
 [project]
 name = "pythainer"
-version = "0.0.5"
+version = "0.0.6"
 authors = [
   { name="Antonio Paolillo", email="antonio@paolillo.be" },
 ]
