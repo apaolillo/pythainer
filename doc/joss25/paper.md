@@ -44,7 +44,7 @@ Plain Dockerfiles are intentionally minimal: they offer sequential shell steps
 but no first-class functions, loops, or composition. This is adequate for simple
 images, yet it complicates reuse in research settings where environments must be
 combined and parameterized. In particular, merging two existing images (e.g.,
-community ROS 2 and NVIDIA CUDA) is not first-class; multi-stage builds help trim
+community ROS 2 and NVIDIA CUDA) is not first-class: multi-stage builds help trim
 artifacts but require intimate knowledge of which files, environment variables,
 and paths must be copied and preserved. On the runtime side, real projects often
 need non-root users, persistent volumes, access to GPUs and GUIs (X11/Wayland),
