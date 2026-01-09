@@ -5,6 +5,8 @@
 [![Wheel](https://img.shields.io/pypi/wheel/pythainer)](https://pypi.org/project/pythainer)
 [![License](https://img.shields.io/github/license/apaolillo/pythainer)](LICENSE)
 
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.09059/status.svg)](https://doi.org/10.21105/joss.09059)
+
 [![Lint](https://github.com/apaolillo/pythainer/actions/workflows/codefmt.yml/badge.svg)](https://github.com/apaolillo/pythainer/actions/workflows/codefmt.yml)
 [![Tests](https://github.com/apaolillo/pythainer/actions/workflows/tests.yml/badge.svg)](https://github.com/apaolillo/pythainer/actions/workflows/tests.yml)
 
@@ -546,6 +548,37 @@ programming model**. By separating environment construction (builders) from
 execution policy (runners), and by making composition a first-class capability,
 it becomes practical to define stable, shareable environments for experiments
 and to reproduce them reliably across machines, projects, and time.
+
+---
+
+## Citing Pythainer
+
+If you use Pythainer in academic work, please cite the corresponding paper:
+
+Paolillo, A. (2026). *pythainer: composable and reusable Docker builders and runners for reproducible research*.
+Journal of Open Source Software, 11(117), 9059.
+https://doi.org/10.21105/joss.09059
+
+<details>
+<summary>BibTeX</summary>
+
+```bibtex
+@article{Paolillo_pythainer_2026,
+  author  = {Paolillo, Antonio},
+  title   = {pythainer: composable and reusable Docker builders and runners for reproducible research},
+  journal = {Journal of Open Source Software},
+  volume  = {11},
+  number  = {117},
+  pages   = {9059},
+  year    = {2026},
+  doi     = {10.21105/joss.09059},
+  url     = {https://doi.org/10.21105/joss.09059}
+}
+```
+</details>
+
+
+Citation metadata is also available in [`CITATION.cff`](CITATION.cff).
 
 ---
 
