@@ -5,6 +5,8 @@
 [![Wheel](https://img.shields.io/pypi/wheel/pythainer)](https://pypi.org/project/pythainer)
 [![License](https://img.shields.io/github/license/apaolillo/pythainer)](LICENSE)
 
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.09059/status.svg)](https://doi.org/10.21105/joss.09059)
+
 [![Lint](https://github.com/apaolillo/pythainer/actions/workflows/codefmt.yml/badge.svg)](https://github.com/apaolillo/pythainer/actions/workflows/codefmt.yml)
 [![Tests](https://github.com/apaolillo/pythainer/actions/workflows/tests.yml/badge.svg)](https://github.com/apaolillo/pythainer/actions/workflows/tests.yml)
 

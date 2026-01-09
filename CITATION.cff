@@ -1,0 +1,28 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Paolillo
+  given-names: Antonio
+  orcid: "https://orcid.org/0000-0001-6608-6562"
+doi: 10.5281/zenodo.18189906
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Paolillo
+    given-names: Antonio
+    orcid: "https://orcid.org/0000-0001-6608-6562"
+  date-published: 2026-01-09
+  doi: 10.21105/joss.09059
+  issn: 2475-9066
+  issue: 117
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 9059
+  title: "pythainer: composable and reusable Docker builders and runners
+    for reproducible research"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.09059"
+  volume: 11
+title: "pythainer: composable and reusable Docker builders and runners
+  for reproducible research"
