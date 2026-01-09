@@ -551,6 +551,37 @@ and to reproduce them reliably across machines, projects, and time.
 
 ---
 
+## Citing Pythainer
+
+If you use Pythainer in academic work, please cite the corresponding paper:
+
+Paolillo, A. (2026). *pythainer: composable and reusable Docker builders and runners for reproducible research*.
+Journal of Open Source Software, 11(117), 9059.
+https://doi.org/10.21105/joss.09059
+
+<details>
+<summary>BibTeX</summary>
+
+```bibtex
+@article{Paolillo_pythainer_2026,
+  author  = {Paolillo, Antonio},
+  title   = {pythainer: composable and reusable Docker builders and runners for reproducible research},
+  journal = {Journal of Open Source Software},
+  volume  = {11},
+  number  = {117},
+  pages   = {9059},
+  year    = {2026},
+  doi     = {10.21105/joss.09059},
+  url     = {https://doi.org/10.21105/joss.09059}
+}
+```
+</details>
+
+
+Citation metadata is also available in [`CITATION.cff`](CITATION.cff).
+
+---
+
 ## Contributing
 
 Contributions are welcome! If you have suggestions for improvements or new
