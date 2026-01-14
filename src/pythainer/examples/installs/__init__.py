@@ -181,7 +181,7 @@ def realsense2_lib_install_from_src(
             "BUILD_GRAPHICAL_EXAMPLES": "true",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
         }
-        | extra_cmake_options,
+        | (extra_cmake_options or {}),
     )
 
 
@@ -241,7 +241,7 @@ def opencv_lib_install_from_src(
             "WITH_CUDA": "ON",
             "CMAKE_BUILD_TYPE": "Debug" if debug else "Release",
         }
-        | extra_cmake_options,
+        | (extra_cmake_options or {}),
         cleanup=cleanup,
     )
 
