@@ -14,6 +14,89 @@ from pythainer.builders.utils import cmake_build_install
 from pythainer.examples.installs import clspv_build_install
 
 
+def configure_ubuntu_user(
+    builder: UbuntuDockerBuilder,
+    user_name: str,
+    lib_dir: str,
+    default_packages: list[str],
+    additional_packages: list[str],
+    unminimize: bool,
+) -> None:
+    """
+    Configure a standard Ubuntu user environment inside a Docker image.
+
+    This helper applies a common sequence of steps on an existing
+    ``UbuntuDockerBuilder`` to:
+    - install base and optional packages,
+    - configure locales,
+    - ensure the image is unminimized when requested,
+    - create a non-root user,
+    - set up a default workspace layout,
+    - and prepare a directory for user-installed libraries/tools.
+
+    It is intended to factor out repeated user-setup logic shared across
+    multiple image recipes.
+
+    Parameters:
+        builder (UbuntuDockerBuilder):
+            An initialized Docker builder targeting an Ubuntu-based image.
+            The builder is mutated in-place.
+        user_name (str):
+            Name of the non-root user to create and configure.
+        lib_dir (str):
+            Path to the directory where libraries and tools should be installed
+            (e.g., under the user's workspace).
+        default_packages (list[str]):
+            Base set of Ubuntu packages to install early in the image setup.
+        additional_packages (list[str]):
+            Optional extra packages required by specific recipes. If empty,
+            no additional installation step is performed.
+        unminimize (bool):
+            Whether the base image is unminimized. If True, the image is
+            unminimized to restore standard Ubuntu tooling and documentation.
+
+    Returns:
+        None
+    """
+
+    builder.desc("General packages & tools")
+    builder.add_packages(packages=default_packages)
+    builder.space()
+
+    builder.desc("Set locales")
+    builder.set_locales()
+    builder.space()
+
+    builder.desc("Set root password")
+    builder.run(command="echo 'root:root' | chpasswd")
+    builder.space()
+
+    if unminimize:
+        builder.desc("Unminimize image")
+        builder.unminimize()
+        builder.space()
+
+    if additional_packages:
+        builder.desc("Required packages")
+        builder.add_packages(packages=additional_packages)
+        builder.space()
+
+    builder.desc("Create a non-root user")
+    builder.create_user(username=user_name)
+    builder.space()
+
+    builder.desc("Configure user environment")
+    builder.user()
+    builder.workdir(path="/home/${USER_NAME}")
+    builder.run(command="touch ~/.sudo_as_admin_successful")
+    builder.run(command="mkdir workspace")
+    builder.workdir(path="/home/${USER_NAME}/workspace")
+    builder.space()
+
+    builder.run(command=f"mkdir -p {lib_dir}")
+    builder.space()
+
+
 def get_user_builder(
     image_name: str,
     base_ubuntu_image: str,
@@ -79,42 +162,14 @@ def get_user_builder(
         "wget",
     ]
 
-    docker_builder.desc("General packages & tools")
-    docker_builder.add_packages(packages=default_packages)
-    docker_builder.space()
-
-    docker_builder.desc("Set locales")
-    docker_builder.set_locales()
-    docker_builder.space()
-
-    docker_builder.desc("Set root password")
-    docker_builder.run(command="echo 'root:root' | chpasswd")
-    docker_builder.space()
-
-    docker_builder.desc("Unminimize image")
-    docker_builder.unminimize()
-    docker_builder.space()
-
-    additional_packages = [p for p in packages if p not in default_packages]
-    if additional_packages:
-        docker_builder.desc("Required packages")
-        docker_builder.add_packages(packages=additional_packages)
-        docker_builder.space()
-
-    docker_builder.desc("Create a non-root user")
-    docker_builder.create_user(username=user_name)
-    docker_builder.space()
-
-    docker_builder.desc("Configure user environment")
-    docker_builder.user()
-    docker_builder.workdir(path="/home/${USER_NAME}")
-    docker_builder.run(command="touch ~/.sudo_as_admin_successful")
-    docker_builder.run(command="mkdir workspace")
-    docker_builder.workdir(path="/home/${USER_NAME}/workspace")
-    docker_builder.space()
-
-    docker_builder.run(command=f"mkdir -p {lib_dir}")
-    docker_builder.space()
+    configure_ubuntu_user(
+        builder=docker_builder,
+        user_name=user_name,
+        lib_dir=lib_dir,
+        default_packages=default_packages,
+        additional_packages=packages,
+        unminimize=True,
+    )
 
     docker_builder.desc("Build & install CMake from source")
     cmake_build_install(builder=docker_builder, version=cmake_version, workdir=lib_dir)
