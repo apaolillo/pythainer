@@ -197,7 +197,14 @@ class ConcreteDockerRunner(DockerRunner):
             else []
         )
         wd = [f"--workdir={self._workdir}"] if self._workdir else []
-        use = [] if self._root else [f"--user={get_uid()}:{get_gid()}"]
+
+        if self._root:
+            uid = 0
+            gid = 0
+        else:
+            uid = get_uid()
+            gid = get_gid()
+        use = [f"--user={uid}:{gid}"]
 
         command = (
             header
