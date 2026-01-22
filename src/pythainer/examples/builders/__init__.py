@@ -10,7 +10,7 @@ projects like CLSPV.
 from typing import List, Tuple
 
 from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder
-from pythainer.builders.utils import cmake_build_install
+from pythainer.builders.utils import cmake_build_install, project_git_clone
 from pythainer.examples.installs import clspv_build_install
 
 
@@ -380,6 +380,7 @@ def rust_builder(
     install_cargo_edit: bool = True,
     install_cargo_watch: bool = False,
     install_nightly: bool = False,
+    rust_default_version: str = "stable",
 ) -> PartialDockerBuilder:
     """
     Sets up a Docker builder for Rust development by installing Rust via rustup
@@ -425,6 +426,9 @@ def rust_builder(
     # Install cargo-watch if requested
     if install_cargo_watch:
         builder.run(command="cargo install cargo-watch")
+
+    if rust_default_version:
+        builder.run(command=f"rustup default {rust_default_version}")
 
     return builder
 
@@ -543,5 +547,52 @@ def qemu_builder(
 
     builder.run_multiple(commands=commands)
     builder.workdir(path="..")
+
+    return builder
+
+
+def lime_rtw_builder(
+    workdir: str,
+) -> PartialDockerBuilder:
+    """
+    Installs LIME RTW from source using the specified Docker builder.
+    """
+    builder = PartialDockerBuilder()
+    builder.user()
+
+    builder.desc("Build & Install LIME RTW from source")
+    builder.desc("https://lime.mpi-sws.org/installation/#kernel-requirements")
+
+    builder.root()
+    builder.add_packages(packages=[
+        "libbpf-dev",
+        "libelf-dev",
+        "zlib1g-dev",
+        "pkg-config",
+        "clang",
+        "protobuf-compiler",
+    ])
+    builder.user()
+
+    builder |= rust_builder()
+
+    lime_rtw_name = project_git_clone(
+        builder=builder,
+        workdir=workdir,
+        git_url="https://github.com/LiME-org/lime-rtw.git",
+        commit="main",
+    )
+
+    # Build and install LIME RTW
+    builder.root()
+    builder.run_multiple(
+        commands=[
+            f"cd {workdir}/{lime_rtw_name}",
+            "cargo +stable build --release",
+            "install -m 0755 target/release/lime-rtw /usr/local/bin/lime-rtw",
+        ]
+    )
+    builder.run(command="target/release/lime-rtw -V")
+    builder.user()
 
     return builder
