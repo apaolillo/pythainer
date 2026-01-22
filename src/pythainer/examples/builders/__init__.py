@@ -564,14 +564,16 @@ def lime_rtw_builder(
     builder.desc("https://lime.mpi-sws.org/installation/#kernel-requirements")
 
     builder.root()
-    builder.add_packages(packages=[
-        "libbpf-dev",
-        "libelf-dev",
-        "zlib1g-dev",
-        "pkg-config",
-        "clang",
-        "protobuf-compiler",
-    ])
+    builder.add_packages(
+        packages=[
+            "libbpf-dev",
+            "libelf-dev",
+            "zlib1g-dev",
+            "pkg-config",
+            "clang",
+            "protobuf-compiler",
+        ]
+    )
     builder.user()
 
     builder |= rust_builder()
