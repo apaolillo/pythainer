@@ -553,9 +553,13 @@ def qemu_builder(
 
 def lime_rtw_builder(
     workdir: str,
+    install: bool = False,
 ) -> PartialDockerBuilder:
     """
     Installs LIME RTW from source using the specified Docker builder.
+    Parameters:
+        workdir: folder path to save the lime-rtw folder
+        install: True if you want to install lime-rtw
     """
     builder = PartialDockerBuilder()
     builder.user()
@@ -576,8 +580,6 @@ def lime_rtw_builder(
     )
     builder.user()
 
-    builder |= rust_builder()
-
     lime_rtw_name = project_git_clone(
         builder=builder,
         workdir=workdir,
@@ -585,16 +587,21 @@ def lime_rtw_builder(
         commit="main",
     )
 
-    # Build and install LIME RTW
-    builder.root()
+    # Build LIME RTW
     builder.run_multiple(
         commands=[
             f"cd {workdir}/{lime_rtw_name}",
             "cargo +stable build --release",
-            "install -m 0755 target/release/lime-rtw /usr/local/bin/lime-rtw",
         ]
     )
+    # install if needed, lime can run from executable
+    if install:
+        builder.root()
+        builder.run(
+            command="install -m 0755 target/release/lime-rtw /usr/local/bin/lime-rtw",
+        )
+        builder.user()
+
     builder.run(command="target/release/lime-rtw -V")
-    builder.user()
 
     return builder
