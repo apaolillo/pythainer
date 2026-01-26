@@ -557,6 +557,7 @@ def lime_rtw_builder(
 ) -> PartialDockerBuilder:
     """
     Installs LIME RTW from source using the specified Docker builder.
+    Warning: current LIME 0.2.2 do not support catching any signal in docker container!
     Parameters:
         workdir: folder path to save the lime-rtw folder
         install: True if you want to install lime-rtw
