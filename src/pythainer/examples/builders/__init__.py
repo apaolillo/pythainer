@@ -596,9 +596,8 @@ def lime_rtw_builder(
     )
     # install if needed, lime can run from executable
     if install:
-        builder.root()
         builder.run(
-            command="install -m 0755 target/release/lime-rtw /usr/local/bin/lime-rtw",
+            command="sudo install -m 0755 target/release/lime-rtw /usr/local/bin/lime-rtw",
         )
         builder.user()
 
