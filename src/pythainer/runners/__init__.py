@@ -181,6 +181,7 @@ class ConcreteDockerRunner(DockerRunner):
             return self._cached_command
 
         image = self._image
+        hostname = self._name if self._name else image
 
         header = ["docker", "run", "--rm"]
         tty = ["--tty"] if self._tty else []
@@ -190,7 +191,7 @@ class ConcreteDockerRunner(DockerRunner):
         dev = [f"--device={d}" for d in self._devices if Path(d).exists()]
         opt = [f"{o}" for o in self._other_options]
         name = [f"--name={self._name}"] if self._name else []
-        host = [f"--hostname={image}"]
+        host = [f"--hostname={hostname}"]
         net = (
             [f"--network={self._network}"] + [f"--add-host={image}:127.0.1.1"]
             if self._network
