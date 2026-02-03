@@ -355,6 +355,100 @@ class DockerBuilder(PartialDockerBuilder):
         self._tag = tag
         self._package_manager = package_manager
         self._use_buildkit = use_buildkit
+        self._squash = False
+
+    def squash(self) -> None:
+        """
+        Enable squashing of the Docker image.
+
+        When enabled, the build will generate a multi-stage Dockerfile where the final
+        stage starts FROM scratch and copies the entire filesystem from the build stage.
+        This eliminates layer bloat from intermediate build steps (e.g., files that were
+        created and then deleted).
+
+        ENV, WORKDIR, and USER instructions are preserved in the final image.
+        """
+        self._squash = True
+
+    def _extract_dockerfile_instructions(self, prefixes: tuple[str, ...]) -> List[str]:
+        """
+        Extract Dockerfile instructions matching given prefixes.
+
+        Parameters:
+            prefixes: Tuple of instruction prefixes to match (e.g., ("ARG ", "ENV ")).
+
+        Returns:
+            List of matching instruction strings.
+        """
+        results = []
+        for cmd in self._build_commands:
+            if not isinstance(cmd, StrDockerBuildCommand):
+                continue
+            cmd_str = cmd.get_str_for_dockerfile()
+            if cmd_str.startswith(prefixes):
+                results.append(cmd_str)
+        return results
+
+    def _find_last_dockerfile_instruction(self, prefix: str) -> str | None:
+        """
+        Find the last Dockerfile instruction matching a given prefix.
+
+        Parameters:
+            prefix: Instruction prefix to match (e.g., "WORKDIR ").
+
+        Returns:
+            The last matching instruction string, or None if not found.
+        """
+        result = None
+        for cmd in self._build_commands:
+            if not isinstance(cmd, StrDockerBuildCommand):
+                continue
+            cmd_str = cmd.get_str_for_dockerfile()
+            if cmd_str.startswith(prefix):
+                result = cmd_str
+        return result
+
+    def _generate_squash_suffix(self) -> str:
+        """
+        Generate the second stage of a multi-stage Dockerfile for squashing.
+
+        Extracts ARG, ENV, WORKDIR, and USER instructions from the build commands
+        and creates a stage that copies the filesystem from scratch.
+
+        Returns:
+            str: Dockerfile content for the squash stage.
+
+        TODO: This implementation relies on string parsing of Dockerfile commands,
+            which is fragile. Once pythainer has a proper AST representation for
+            Dockerfile instructions (instead of raw strings), this should be
+            refactored to use typed command objects directly.
+        """
+        lines = [
+            "",
+            "# Squash stage: copy filesystem and reapply metadata",
+            "FROM scratch",
+            "COPY --from=0 / /",
+        ]
+
+        # Extract ARG instructions (needed for variable references in USER/WORKDIR)
+        lines.extend(self._extract_dockerfile_instructions(("ARG ",)))
+
+        # Extract ENV instructions
+        lines.extend(self._extract_dockerfile_instructions(("ENV ",)))
+
+        # Find and append the last WORKDIR, USER, ENTRYPOINT, and CMD
+        for prefix in ("WORKDIR ", "USER ", "ENTRYPOINT ", "CMD "):
+            last_instruction = self._find_last_dockerfile_instruction(prefix)
+            if last_instruction:
+                lines.append(last_instruction)
+
+        # Default to /bin/bash if no CMD or ENTRYPOINT was specified
+        has_cmd = self._find_last_dockerfile_instruction("CMD ")
+        has_entrypoint = self._find_last_dockerfile_instruction("ENTRYPOINT ")
+        if not has_cmd and not has_entrypoint:
+            lines.append('CMD ["/bin/bash"]')
+
+        return "\n".join(lines) + "\n"
 
     def generate_dockerfile(self, dockerfile_paths: List[PathType]) -> None:
         """
@@ -364,10 +458,25 @@ class DockerBuilder(PartialDockerBuilder):
         Parameters:
             dockerfile_paths (List[PathType]): A list of paths where the Dockerfile should be saved.
         """
+        # For squash mode, add "AS builder" to the FROM line
+        commands = self._build_commands
+        if self._squash:
+            commands = []
+            for cmd in self._build_commands:
+                if isinstance(cmd, StrDockerBuildCommand):
+                    cmd_str = cmd.get_str_for_dockerfile()
+                    if cmd_str.startswith("FROM ") and " AS " not in cmd_str:
+                        commands.append(StrDockerBuildCommand(cmd_str + " AS builder"))
+                        continue
+                commands.append(cmd)
+
         dockerfile_content = render_dockerfile_content(
             package_manager=self._package_manager,
-            commands=self._build_commands,
+            commands=commands,
         )
+
+        if self._squash:
+            dockerfile_content += self._generate_squash_suffix()
 
         all_dockerfile_paths = dockerfile_paths + [
             "/tmp/Dockerfile",
