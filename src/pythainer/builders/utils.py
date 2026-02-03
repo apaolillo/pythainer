@@ -123,7 +123,11 @@ def project_git_clone(
             f"git clone{depth_flag} {git_url}{target_dirname_suffix}",
             f"cd {repo_name}",
             f"git checkout {commit}",
-        ] + ([f"git submodule update --init --recursive{depth_flag}"] if submodule_init_recursive else [])
+        ] + (
+            [f"git submodule update --init --recursive{depth_flag}"]
+            if submodule_init_recursive
+            else []
+        )
 
         builder.run_multiple(commands=commands)
     else:
