@@ -75,6 +75,13 @@ def configure_ubuntu_user(
         builder.desc("Unminimize image")
         builder.unminimize()
         builder.space()
+    else:
+        builder.run_multiple(
+            commands=[
+                "locale-gen en_US.UTF-8",
+                "update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8",
+            ]
+        )
 
     if additional_packages:
         builder.desc("Required packages")
@@ -255,6 +262,85 @@ def opencl_builder() -> PartialDockerBuilder:
     )
     docker_builder.env(name="NVIDIA_VISIBLE_DEVICES", value="all")
     docker_builder.env(name="NVIDIA_DRIVER_CAPABILITIES", value="compute,utility")
+
+    return docker_builder
+
+
+def get_min_user_builder(
+    image_name: str,
+    base_ubuntu_image: str = "ubuntu:24.04",
+    user_name: str = "user",
+    lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
+    packages: list[str] = (),
+) -> UbuntuDockerBuilder:
+    """
+    Create a minimal Ubuntu-based Docker builder with a non-root user.
+
+    This is a lightweight variant of ``get_user_builder()`` aimed at
+    small images and fast builds. It installs only a minimal set of
+    development essentials (compiler toolchain, git, locales, sudo, wget,
+    adduser), optionally adds extra packages, and configures a standard
+    user workspace layout via ``configure_ubuntu_user()``.
+
+    Notably, this builder does **not** unminimize the base image
+    (``unminimize=False``), which keeps the resulting image smaller but
+    may omit some Ubuntu tooling/docs present in unminimized images.
+
+    Parameters:
+        image_name (str):
+            Tag to assign to the Docker image that will be built with the
+            returned builder.
+        base_ubuntu_image (str):
+            Base Ubuntu image tag to use (e.g., "ubuntu:24.04").
+        user_name (str):
+            Name of the non-root user to create and configure.
+        lib_dir (str):
+            Path to the directory where libraries and tools should be installed
+            (typically under the user's workspace).
+        packages (list[str]):
+            Optional additional Ubuntu packages to install on top of the minimal
+            default package set.
+
+    Returns:
+        UbuntuDockerBuilder:
+            A configured Ubuntu Docker builder instance with a non-root user,
+            basic packages installed, locales configured, and a ready-to-use
+            workspace layout.
+    """
+    docker_builder = UbuntuDockerBuilder(
+        tag=image_name,
+        ubuntu_base_tag=base_ubuntu_image,
+    )
+    docker_builder.space()
+
+    docker_builder.env(name="DEBIAN_FRONTEND", value="noninteractive")
+    docker_builder.space()
+
+    docker_builder.add_packages(
+        packages=[
+            "apt-utils",
+        ]
+    )
+    docker_builder.space()
+
+    default_packages = [
+        "build-essential",
+        "ca-certificates",
+        "git",
+        "locales",
+        "sudo",
+        "wget",
+        "adduser",
+    ]
+
+    configure_ubuntu_user(
+        builder=docker_builder,
+        user_name=user_name,
+        lib_dir=lib_dir,
+        default_packages=default_packages,
+        additional_packages=packages,
+        unminimize=False,
+    )
 
     return docker_builder
 
