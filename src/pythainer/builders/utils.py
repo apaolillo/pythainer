@@ -90,6 +90,7 @@ def project_git_clone(
     target_dirname: str = "",
     submodule_init_recursive: bool = False,
     single_run_command: bool = False,
+    shallow: bool = False,
 ) -> str:
     """
     Clones a Git repository at a specified commit into a Docker environment, optionally initializing
@@ -101,6 +102,7 @@ def project_git_clone(
         git_url (str): The URL of the Git repository to clone.
         commit (str): The specific commit to check out.
         submodule_init_recursive (bool): Whether to recursively initialize submodules.
+        shallow (bool): Whether to use --depth 1 for the clone and submodule init.
 
     Returns:
         str: The name of the repository directory.
@@ -113,23 +115,28 @@ def project_git_clone(
             repo_name = repo_name[:-4]
 
     target_dirname_suffix = f" {target_dirname.strip()}" if target_dirname else ""
+    depth_flag = " --depth 1" if shallow else ""
 
     if single_run_command:
         commands = [
             f"cd {workdir}",
-            f"git clone {git_url}{target_dirname_suffix}",
+            f"git clone{depth_flag} {git_url}{target_dirname_suffix}",
             f"cd {repo_name}",
             f"git checkout {commit}",
-        ] + (["git submodule update --init --recursive"] if submodule_init_recursive else [])
+        ] + (
+            [f"git submodule update --init --recursive{depth_flag}"]
+            if submodule_init_recursive
+            else []
+        )
 
         builder.run_multiple(commands=commands)
     else:
         builder.workdir(path=workdir)
-        builder.run(command=f"git clone {git_url}{target_dirname_suffix}")
+        builder.run(command=f"git clone{depth_flag} {git_url}{target_dirname_suffix}")
         builder.workdir(path=repo_name)
         builder.run(command=f"git checkout {commit}")
         if submodule_init_recursive:
-            builder.run(command="git submodule update --init --recursive")
+            builder.run(command=f"git submodule update --init --recursive{depth_flag}")
 
     return target_dirname if target_dirname_suffix else repo_name
 
