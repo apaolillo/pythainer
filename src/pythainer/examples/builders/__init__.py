@@ -519,53 +519,108 @@ def rust_builder(
     return builder
 
 
-def qemu_dependencies() -> List[str]:
+def qemu_dependencies(
+    enables: Tuple[str, ...] = (),
+    disables: Tuple[str, ...] = (),
+) -> List[str]:
     """
     Return the list of Ubuntu packages required to build QEMU from source.
 
-    These cover build tools (make, ninja), Python/sphinx for docs, GLib/pixman
-    for QEMU’s build/runtime, and optional GUI/audio backends (SDL2, GTK, ALSA, PulseAudio).
+    Core build packages are always included. Optional GUI/audio/docs packages
+    are included unless their corresponding feature is in ``disables``, or
+    excluded unless explicitly in ``enables``.
+
+    Parameters:
+        enables: QEMU features passed to ``--enable-*``.
+        disables: QEMU features passed to ``--disable-*``.
 
     Returns:
         List[str]: Package names to be installed prior to building QEMU.
     """
-    qemu_packages = [
-        "acpica-tools",
+
+    def _want(feature: str) -> bool:
+        """Return True if a feature is not explicitly disabled."""
+        if feature in disables:
+            return False
+        if feature in enables:
+            return True
+        # Default: include for backward compatibility
+        return True
+
+    packages = [
+        # Core build tools
+        "build-essential",
+        "diffutils",
         "libglib2.0-dev",
         "libpixman-1-dev",
-        "pkg-config",
-        "python3",
-        "python3-dev",
-        "python3-pip",
-        "python3-sphinx",
-        "python3-sphinx-rtd-theme",
-        "python3-venv",
-        "sparse",
-        "build-essential",
         "meson",
         "ninja-build",
         "pkg-config",
-        "diffutils",
         "python3",
+        "python3-dev",
         "python3-venv",
-        "libglib2.0-dev",
-        "libusb-1.0-0-dev",
-        "libncursesw5-dev",
-        "libpixman-1-dev",
-        "libepoxy-dev",
-        "libv4l-dev",
-        "libpng-dev",
-        "libsdl2-dev",
-        "libsdl2-image-dev",
-        "libgtk-3-dev",
-        "libgdk-pixbuf2.0-dev",
-        "libasound2-dev",
-        "libpulse-dev",
-        "libx11-dev",
-        "libslirp0",
     ]
 
-    return qemu_packages
+    if _want("docs"):
+        packages += [
+            "python3-sphinx",
+            "python3-sphinx-rtd-theme",
+        ]
+
+    if _want("sdl"):
+        packages += [
+            "libsdl2-dev",
+            "libsdl2-image-dev",
+        ]
+
+    if _want("gtk"):
+        packages += [
+            "libepoxy-dev",
+            "libgdk-pixbuf2.0-dev",
+            "libgtk-3-dev",
+            "libx11-dev",
+        ]
+
+    if _want("opengl"):
+        packages += [
+            "libepoxy-dev",
+        ]
+
+    if _want("slirp"):
+        packages += [
+            "libslirp0",
+        ]
+
+    if _want("guest-agent") or _want("tools"):
+        packages += [
+            "acpica-tools",
+            "libusb-1.0-0-dev",
+        ]
+
+    if _want("vnc"):
+        packages += [
+            "libpng-dev",
+        ]
+
+    if _want("curses"):
+        packages += [
+            "libncursesw5-dev",
+        ]
+
+    if _want("pa"):
+        packages += [
+            "libpulse-dev",
+            "libasound2-dev",
+        ]
+
+    if _want("alsa"):
+        packages += [
+            "libasound2-dev",
+        ]
+
+    # Deduplicate while preserving order
+    seen: set = set()
+    return [p for p in packages if not (p in seen or seen.add(p))]
 
 
 def qemu_builder(
@@ -601,7 +656,7 @@ def qemu_builder(
     builder = PartialDockerBuilder()
 
     builder.root()
-    builder.add_packages(packages=qemu_dependencies())
+    builder.add_packages(packages=qemu_dependencies(enables=enables, disables=disables))
     builder.user()
 
     builder.run_multiple(
