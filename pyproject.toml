@@ -13,9 +13,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "black<=25.1.0",
-    "click<=8.2.1",
-    "isort<=6.0.1",
+    "black>=26",
+    "click>=8",
+    "isort>=7",
 ]
 
 [project.urls]
