@@ -67,7 +67,7 @@ git push origin v0.X.Y
 Use a fresh clone and venv to avoid leaking deps:
 
 ```bash
-git clone https://github.com/apaolillo/pythainer.git
+git clone git@github.com:apaolillo/pythainer.git
 cd pythainer/
 python3 -m venv .venv-release
 . .venv-release/bin/activate
