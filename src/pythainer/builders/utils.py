@@ -117,26 +117,34 @@ def project_git_clone(
     target_dirname_suffix = f" {target_dirname.strip()}" if target_dirname else ""
     depth_flag = " --depth 1" if shallow else ""
 
-    if single_run_command:
-        commands = [
-            f"cd {workdir}",
-            f"git clone{depth_flag} {git_url}{target_dirname_suffix}",
-            f"cd {repo_name}",
-            f"git checkout {commit}",
-        ] + (
-            [f"git submodule update --init --recursive{depth_flag}"]
-            if submodule_init_recursive
-            else []
-        )
+    # 1. Clone
+    branch_flag = f" --branch {commit}" if (shallow and commit) else ""
+    clone_cmd = f"git clone{depth_flag}{branch_flag} {git_url}{target_dirname_suffix}"
 
+    # 2. Checkout (only needed for full clones with a specific commit)
+    checkout_cmd = f"git checkout {commit}" if (not shallow and commit) else None
+
+    # 3. Submodules
+    if submodule_init_recursive:
+        submodule_cmd = f"git submodule update --init --recursive{depth_flag}"
+    else:
+        submodule_cmd = None
+
+    if single_run_command:
+        commands = [f"cd {workdir}", clone_cmd, f"cd {repo_name}"]
+        if checkout_cmd:
+            commands.append(checkout_cmd)
+        if submodule_cmd:
+            commands.append(submodule_cmd)
         builder.run_multiple(commands=commands)
     else:
         builder.workdir(path=workdir)
-        builder.run(command=f"git clone{depth_flag} {git_url}{target_dirname_suffix}")
+        builder.run(command=clone_cmd)
         builder.workdir(path=repo_name)
-        builder.run(command=f"git checkout {commit}")
-        if submodule_init_recursive:
-            builder.run(command=f"git submodule update --init --recursive{depth_flag}")
+        if checkout_cmd:
+            builder.run(command=checkout_cmd)
+        if submodule_cmd:
+            builder.run(command=submodule_cmd)
 
     return target_dirname if target_dirname_suffix else repo_name
 
