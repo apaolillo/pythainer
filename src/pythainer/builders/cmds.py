@@ -195,7 +195,7 @@ def _add_pkg_apt(packages: list[str]) -> str:
     Returns:
         str: A Dockerfile RUN command to update, install, and clean up apt packages.
     """
-    fmt_packages = "".join([f"        {p} \\\n" for p in sorted(packages)])
+    fmt_packages = "".join([f"        {p} \\\n" for p in sorted(set(packages))])
     cmd = (
         f"apt-get update && apt-get install -y --no-install-recommends \\\n{fmt_packages}"
         f"    && rm -rf /var/lib/apt/lists/*"

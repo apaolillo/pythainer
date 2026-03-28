@@ -153,12 +153,12 @@ class ConcreteDockerRunner(DockerRunner):
         self._tty = tty
         self._interactive = interactive
 
-        self._cached_command = None
+        self._cached_command: list[str] | None = None
 
     def __or__(self, other: DockerRunner) -> "ConcreteDockerRunner":
         if isinstance(other, ConcreteDockerRunner):
             return NotImplemented
-        abstract_runner = super().__or__(other=other)
+        abstract_runner = super().__or__(other)
         return abstract_runner.concretize(
             image=self._image,
             name=self._name,
@@ -253,8 +253,8 @@ class ConcreteDockerRunner(DockerRunner):
             command = command[:-1]
         if commands:
             commands_serial = " && ".join(commands)
-            commands_serial = ["bash", "-c", commands_serial]
-            command.extend(commands_serial)
+            commands_serial_lst = ["bash", "-c", commands_serial]
+            command.extend(commands_serial_lst)
         shell_out(
             command=command,
             output_is_log=True,
