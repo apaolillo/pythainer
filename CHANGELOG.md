@@ -5,6 +5,32 @@ All notable changes to pythainer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7] - 2026-03-28
+
+### Added
+
+- Image squashing via multi-stage builds to eliminate layer bloat (`DockerBuilder.squash()`).
+- Shallow clone option in `project_git_clone()` for faster builds and smaller images.
+- Minimal user builder (`get_min_user_builder()`) for lightweight images.
+- Container name used as hostname in runners.
+- LiME (Linux Memory Extractor) example builder.
+- CITATION.cff and JOSS badge in README.
+
+### Changed
+
+- QEMU example dependencies are now feature-aware, derived from `--enable`/`--disable` flags.
+- Ubuntu user setup factored into reusable `configure_ubuntu_user` helper.
+- Relaxed lower bounds on `black`, `click`, and `isort` dependencies; bumped dev tools.
+- Shallow clone now uses `git clone --branch <ref>` to correctly fetch tags and branches.
+- Release procedure updated to exclude virtual environments from Hatchling builds.
+
+### Fixed
+
+- Duplicate apt packages are now deduplicated before rendering into Dockerfile.
+- Runner forces UID and GID for root user.
+- CMake options merge crash when `extra_cmake_options` is `None`.
+- Package cleanup removes the generated `.deb` file instead of the bare package name.
+
 ## [0.0.6] - 2026-01-08
 
 ### Added
