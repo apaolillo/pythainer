@@ -5,6 +5,17 @@ All notable changes to pythainer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `apt_mirror` parameter on `get_user_builder()` and `get_min_user_builder()`
+  (and reusable `switch_apt_mirror()` helper) to swap the default Ubuntu APT
+  mirror before the first `apt-get update`, which is useful when
+  `archive.ubuntu.com` is slow or under incident. A common choice is
+  `mirror://mirrors.ubuntu.com/mirrors.txt` for automatic geographic
+  mirror selection. `security.ubuntu.com` is left untouched.
+
 ## [0.0.7] - 2026-03-28
 
 ### Added

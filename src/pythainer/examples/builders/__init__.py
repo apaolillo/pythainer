@@ -14,6 +14,52 @@ from pythainer.builders.utils import cmake_build_install, project_git_clone
 from pythainer.examples.installs import clspv_build_install
 
 
+def switch_apt_mirror(
+    builder: UbuntuDockerBuilder,
+    apt_mirror: str,
+) -> None:
+    """
+    Replace the default ``archive.ubuntu.com/ubuntu/`` URL in the APT sources
+    of the base image with ``apt_mirror``.
+
+    Call this **before** the first ``apt-get update`` so that subsequent
+    installs use the new mirror. Both source formats are handled:
+
+    * the DEB822 file ``/etc/apt/sources.list.d/ubuntu.sources`` used by
+      Ubuntu 24.04 (noble) and later,
+    * the classic ``/etc/apt/sources.list`` used by earlier releases.
+
+    ``security.ubuntu.com/ubuntu/`` is left untouched so security updates
+    continue to come from Canonical directly.
+
+    A common choice is Ubuntu's geographic mirror auto-selector,
+    ``mirror://mirrors.ubuntu.com/mirrors.txt``, which returns a
+    proximity-sorted list of mirrors at install time.
+
+    Parameters:
+        builder (UbuntuDockerBuilder):
+            An initialized Docker builder targeting an Ubuntu-based image.
+            The builder is mutated in-place.
+        apt_mirror (str):
+            Base URL substituted for ``http://archive.ubuntu.com/ubuntu/``
+            in the APT sources (e.g.
+            ``mirror://mirrors.ubuntu.com/mirrors.txt``,
+            ``http://be.archive.ubuntu.com/ubuntu/``).
+    """
+    archive = "http://archive.ubuntu.com/ubuntu/"
+    builder.desc(f"Switch APT mirror to {apt_mirror}")
+    builder.run(
+        command=(
+            "for f in /etc/apt/sources.list.d/ubuntu.sources "
+            "/etc/apt/sources.list; do "
+            '[ -f "$f" ] && '
+            f"sed -i 's|{archive}|{apt_mirror}|g' \"$f\"; "
+            "done"
+        ),
+    )
+    builder.space()
+
+
 def configure_ubuntu_user(
     builder: UbuntuDockerBuilder,
     user_name: str,
@@ -111,6 +157,7 @@ def get_user_builder(
     lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
     cmake_version: str = "3.27.9",
     packages: List[str] = (),
+    apt_mirror: str | None = None,
 ) -> UbuntuDockerBuilder:
     """
     Creates a customized Docker builder with a non-root user and general
@@ -124,6 +171,11 @@ def get_user_builder(
         lib_dir (str): Directory for libraries and tools.
         cmake_version (str): Version of CMake to install.
         packages (List[str]): Additional packages to install in the Docker image.
+        apt_mirror (str | None):
+            Optional URL substituted for ``http://archive.ubuntu.com/ubuntu/``
+            in the APT sources before the first ``apt-get update`` (e.g.
+            ``mirror://mirrors.ubuntu.com/mirrors.txt``). If ``None``, the
+            base image's default mirror is used.
 
     Returns:
         UbuntuDockerBuilder: A configured Docker builder instance with a non-root user.
@@ -137,6 +189,9 @@ def get_user_builder(
 
     docker_builder.env(name="DEBIAN_FRONTEND", value="noninteractive")
     docker_builder.space()
+
+    if apt_mirror is not None:
+        switch_apt_mirror(builder=docker_builder, apt_mirror=apt_mirror)
 
     docker_builder.add_packages(
         packages=[
@@ -272,6 +327,7 @@ def get_min_user_builder(
     user_name: str = "user",
     lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
     packages: list[str] = (),
+    apt_mirror: str | None = None,
 ) -> UbuntuDockerBuilder:
     """
     Create a minimal Ubuntu-based Docker builder with a non-root user.
@@ -300,6 +356,11 @@ def get_min_user_builder(
         packages (list[str]):
             Optional additional Ubuntu packages to install on top of the minimal
             default package set.
+        apt_mirror (str | None):
+            Optional URL substituted for ``http://archive.ubuntu.com/ubuntu/``
+            in the APT sources before the first ``apt-get update`` (e.g.
+            ``mirror://mirrors.ubuntu.com/mirrors.txt``). If ``None``, the
+            base image's default mirror is used.
 
     Returns:
         UbuntuDockerBuilder:
@@ -315,6 +376,9 @@ def get_min_user_builder(
 
     docker_builder.env(name="DEBIAN_FRONTEND", value="noninteractive")
     docker_builder.space()
+
+    if apt_mirror is not None:
+        switch_apt_mirror(builder=docker_builder, apt_mirror=apt_mirror)
 
     docker_builder.add_packages(
         packages=[
