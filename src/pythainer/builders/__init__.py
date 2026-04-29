@@ -505,6 +505,7 @@ class DockerBuilder(PartialDockerBuilder):
         docker_build_dir: PathType,
         uid: str | None = None,
         gid: str | None = None,
+        build_options: List[str] | None = None,
     ) -> List[str]:
         """
         Constructs the docker build command using the provided Dockerfile and build directory.
@@ -514,6 +515,7 @@ class DockerBuilder(PartialDockerBuilder):
             docker_build_dir (PathType): The directory where the Docker build context resides.
             uid (str): The user ID that should be passed to the Docker build context, if any.
             gid (str): The group ID that should be passed to the Docker build context, if any.
+            build_options (List[str]): List passed to command.
 
         Returns:
             List[str]: The complete Docker build command as a list of strings.
@@ -523,6 +525,8 @@ class DockerBuilder(PartialDockerBuilder):
             build_args.append(f"--build-arg=UID={uid}")
         if gid is not None and gid and "0" != gid:
             build_args.append(f"--build-arg=GID={gid}")
+        if build_options is None:
+            build_options = []
 
         docker_path = shell_out(
             command=["which", "docker"],
@@ -548,6 +552,7 @@ class DockerBuilder(PartialDockerBuilder):
             ]
             + build_args
             + other_args
+            + build_options
             + [
                 f"--tag={self._tag}",
                 f"{docker_build_dir}",
@@ -599,13 +604,19 @@ class DockerBuilder(PartialDockerBuilder):
         with open(output_path, "w") as script_file:
             script_file.write(file_content)
 
-    def build(self, dockerfile_savepath: PathType = "", docker_context: PathType = "") -> None:
+    def build(
+        self,
+        dockerfile_savepath: PathType = "",
+        docker_context: PathType = "",
+        extra_build_options: List[str] = [],
+    ) -> None:
         """
         Builds the Docker image using the generated Dockerfile and specified Docker build directory.
 
         Parameters:
             dockerfile_savepath (PathType): Optional path to save the Dockerfile used for the build.
             docker_context (PathType): Optional path to save the Docker context used for the build.
+            extra_build_options (List[str]): Optional list passed to execute Docker build command.
         """
         main_dir = Path("/tmp/pythainer/docker/")
         mkdir(main_dir)
@@ -632,6 +643,7 @@ class DockerBuilder(PartialDockerBuilder):
                 docker_build_dir=context_path,
                 uid=get_uid(),
                 gid=get_gid(),
+                build_options=extra_build_options,
             )
 
             environment = self.get_build_environment()
