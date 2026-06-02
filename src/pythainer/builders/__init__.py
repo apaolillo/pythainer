@@ -608,7 +608,7 @@ class DockerBuilder(PartialDockerBuilder):
         self,
         dockerfile_savepath: PathType = "",
         docker_context: PathType = "",
-        extra_build_options: List[str] = (),
+        extra_build_options: List[str] | None = None,
     ) -> None:
         """
         Builds the Docker image using the generated Dockerfile and specified Docker build directory.
