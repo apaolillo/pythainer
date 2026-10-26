@@ -9,9 +9,10 @@ managing the cloning and building of projects from Git repositories.
 """
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from pythainer.builders import DockerBuilder, PartialDockerBuilder
+from pythainer.builders.commands.run.mounts import RunMount
 from pythainer.sysutils import PathType
 
 
@@ -91,6 +92,7 @@ def project_git_clone(
     submodule_init_recursive: bool = False,
     single_run_command: bool = False,
     shallow: bool = False,
+    mounts: Iterable[RunMount] | None = None,
 ) -> str:
     """
     Clones a Git repository at a specified commit into a Docker environment, optionally initializing
@@ -103,6 +105,7 @@ def project_git_clone(
         commit (str): The specific commit to check out.
         submodule_init_recursive (bool): Whether to recursively initialize submodules.
         shallow (bool): Whether to use --depth 1 for the clone and submodule init.
+        mounts (Iterable[RunMount]): Optional mounts to use during the clone process.
 
     Returns:
         str: The name of the repository directory.
@@ -136,15 +139,15 @@ def project_git_clone(
             commands.append(checkout_cmd)
         if submodule_cmd:
             commands.append(submodule_cmd)
-        builder.run_multiple(commands=commands)
+        builder.run_multiple(commands=commands, mounts=mounts)
     else:
         builder.workdir(path=workdir)
-        builder.run(command=clone_cmd)
+        builder.run(command=clone_cmd, mounts=mounts)
         builder.workdir(path=repo_name)
         if checkout_cmd:
-            builder.run(command=checkout_cmd)
+            builder.run(command=checkout_cmd, mounts=mounts)
         if submodule_cmd:
-            builder.run(command=submodule_cmd)
+            builder.run(command=submodule_cmd, mounts=mounts)
 
     return target_dirname if target_dirname_suffix else repo_name
 
@@ -222,6 +225,7 @@ def project_git_cmake_build_install(
     cmake_options: Dict[str, str] | None = None,
     install: bool = True,
     cleanup: bool = True,
+    mounts: Iterable[RunMount] | None = None,
 ) -> None:
     """
     Clones a project from a Git repository, applies optional patches, and builds it using CMake in
@@ -241,6 +245,7 @@ def project_git_cmake_build_install(
         cmake_options (Dict[str, str]): A dictionary of CMake options to pass to the cmake command.
         install (bool): Whether to run the 'make install' or equivalent command.
         cleanup (bool): Whether to clean up after building. Defaults to True.
+        mounts (Iterable[RunMount]): Optional mounts to use during the clone process.
     """
     repo_name = project_git_clone(
         builder=builder,
@@ -248,6 +253,7 @@ def project_git_cmake_build_install(
         git_url=git_url,
         commit=commit,
         submodule_init_recursive=submodule_init_recursive,
+        mounts=mounts,
     )
 
     for patch_command in patch_commands:
